@@ -1,0 +1,42 @@
+import { Injectable } from '@nestjs/common';
+import { UsuarioDTO } from './usuario.dto';
+import { PrismaService } from 'src/datrabase/PrismaService';
+import { hashPassword } from '../auth/utils/bcrypt.utils';
+
+export type User = any;
+
+@Injectable()
+export class UsuarioService {
+
+    constructor(private prisma:PrismaService){}
+
+    async create(users:UsuarioDTO){
+
+        const userExists = await this.prisma.usuario.findFirst({
+            where:{
+                nome: users.nome
+            }
+        });
+
+        if(userExists){
+            throw new Error("Usuario ja exite");
+        }
+
+       const passwd      =  await hashPassword(users.passwd);
+       const data = {...users,passwd};
+
+       const user = await this.prisma.usuario.create({
+            data,
+        });
+
+        return user;
+    }
+
+    async findoOne(fist_name:string): Promise<User | undefined>{
+        return this.prisma.usuario.findFirst({
+            where:{
+                nome:fist_name
+            }
+        })
+    }
+}
