@@ -10,11 +10,18 @@ export class UsuarioService {
 
     constructor(private prisma:PrismaService){}
 
-    async create(users:UsuarioDTO){
+    async create(users:UsuarioDTO,cnpj:string){
+
+        const getEmpresa = await this.prisma.empresa.findFirst({
+            where: {
+                cnpj
+            }
+        });
 
         const userExists = await this.prisma.usuario.findFirst({
             where:{
-                nome: users.nome
+                nome: users.nome,
+                idemp: getEmpresa.id
             }
         });
 
@@ -36,6 +43,9 @@ export class UsuarioService {
         return this.prisma.usuario.findFirst({
             where:{
                 nome:fist_name
+            },
+            include:{
+                empresa:true
             }
         })
     }
