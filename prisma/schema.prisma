@@ -35,10 +35,7 @@ model usuario {
   updated_at  DateTime? @default(now()) @db.Timestamp(0)
   codrepre   String?             @db.Char(10)
   user_ativo usuario_user_ativo? @default(N)
-  idemp      String
-  empresa    empresa             @relation(fields: [idemp], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_usuario_empresa1")
-
-  @@index([idemp], map: "fk_usuario_empresa1_idx")
+  empresas  UsuarioEmpresa[]
 }
 
 model banco {
@@ -210,7 +207,16 @@ model empresa {
   im        String? @db.VarChar(15)
   cnae      String? @db.VarChar(7)
   crt       Int?
-  usuario usuario[]
+  usuarios  UsuarioEmpresa[]
+}
+
+model UsuarioEmpresa {
+  usuarioId String
+  empresaId String
+  usuario   usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  empresa   empresa @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+
+  @@id([usuarioId, empresaId])
 }
 
 model estado {

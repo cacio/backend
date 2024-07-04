@@ -20,8 +20,7 @@ export class UsuarioService {
 
         const userExists = await this.prisma.usuario.findFirst({
             where:{
-                nome: users.nome,
-                idemp: getEmpresa.id
+                email: users.email,
             }
         });
 
@@ -42,10 +41,14 @@ export class UsuarioService {
     async findoOne(fist_name:string): Promise<User | undefined>{
         return this.prisma.usuario.findFirst({
             where:{
-                nome:fist_name
+                email:fist_name
             },
             include:{
-                empresa:true
+                empresas:{
+                    include:{
+                        empresa:true
+                    }
+                }
             }
         })
     }

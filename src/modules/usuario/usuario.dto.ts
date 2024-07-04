@@ -24,8 +24,5 @@ export class UsuarioDTO {
     @IsString()
     @IsEnum(usuario_user_ativo)
     user_ativo:usuario_user_ativo;
-    @IsNotEmpty()
-    @IsString()
-    idemp:string;
 
 };

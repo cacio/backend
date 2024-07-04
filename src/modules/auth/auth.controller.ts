@@ -12,6 +12,12 @@ export class AuthController {
     return this.authService.signIn(signInDto.username, signInDto.password);
   }
 
+  @Post('change/login')
+  signInChange(@Body() signInDto: Record<string, any>) {
+    return this.authService.signInChange(signInDto.username, signInDto.password);
+  }
+
+
   @UseGuards(AuthGuard)
   @Get('profile')
   getProfile(@Request() req) {

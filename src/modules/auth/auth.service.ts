@@ -32,4 +32,20 @@ export class AuthService {
           };
         }
       }
+
+      async signInChange(username: string, pass: string){
+        const user = await this.usersService.findoOne(username);
+        if(user != null){
+          const isValidPassword = await validatePassword(pass,user?.passwd);
+
+          if (!isValidPassword) {
+            throw new UnauthorizedException();
+          }
+
+          return {
+              usuario:user,
+              msg:"Sucesso!",
+          };
+        }
+      }
 }
