@@ -10,9 +10,10 @@ export class AuthService {
         private jwtService: JwtService
     ){}
 
-    async signIn(username: string, pass: string): Promise<any> {
+    async signIn(username: string, pass: string,cnpj:string): Promise<any> {
 
-        const user = await this.usersService.findoOne(username);
+        const user = await this.usersService.findoOne(username,cnpj);
+        console.log('aqui: ',user);
         if(user != null){
           const isValidPassword = await validatePassword(pass,user?.passwd);
           console.log("aqui: ",isValidPassword);
@@ -34,7 +35,7 @@ export class AuthService {
       }
 
       async signInChange(username: string, pass: string){
-        const user = await this.usersService.findoOne(username);
+        const user = await this.usersService.findoOneChange(username);
         if(user != null){
           const isValidPassword = await validatePassword(pass,user?.passwd);
 

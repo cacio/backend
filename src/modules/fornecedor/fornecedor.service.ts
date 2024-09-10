@@ -174,12 +174,19 @@ export class FornecedorService {
         });
     }
 
-    async ListaFornecedoresCriados(lastPulledVersion: Date){
+    async ListaFornecedoresCriados(lastPulledVersion: Date,cnpj:string){
+        const getEmpresa = await this.prisma.empresa.findFirst({
+            where: {
+                cnpj
+            }
+        });
+
         const datafornec = await this.prisma.fornecedor.findMany({
             where:{
                 created_at:{
                     gt:lastPulledVersion
-                }
+                },
+                idemp: getEmpresa.id
             }
         })
         return datafornec.map(fornecedor => ({
@@ -188,12 +195,20 @@ export class FornecedorService {
         }));
     }
 
-    async ListaFornecedorAlterado(lastPulledVersion: Date) {
+    async ListaFornecedorAlterado(lastPulledVersion: Date,cnpj:string) {
+
+        const getEmpresa = await this.prisma.empresa.findFirst({
+            where: {
+                cnpj
+            }
+        });
+
         const datafornec =await this.prisma.fornecedor.findMany({
             where: {
                 updated_at: {
                     gte: lastPulledVersion, // updated_at >= lastPulledVersion
                 },
+                idemp: getEmpresa.id
             },
         });
 

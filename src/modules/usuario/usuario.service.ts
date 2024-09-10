@@ -8,9 +8,9 @@ export type User = any;
 @Injectable()
 export class UsuarioService {
 
-    constructor(private prisma:PrismaService){}
+    constructor(private prisma: PrismaService) { }
 
-    async create(users:UsuarioDTO,cnpj:string){
+    async create(users: UsuarioDTO, cnpj: string) {
 
         const getEmpresa = await this.prisma.empresa.findFirst({
             where: {
@@ -19,34 +19,61 @@ export class UsuarioService {
         });
 
         const userExists = await this.prisma.usuario.findFirst({
-            where:{
+            where: {
                 email: users.email,
             }
         });
 
-        if(userExists){
+        if (userExists) {
             throw new Error("Usuario ja exite");
         }
 
-       const passwd      =  await hashPassword(users.passwd);
-       const data = {...users,passwd};
+        const passwd = await hashPassword(users.passwd);
+        const data = { ...users, passwd };
 
-       const user = await this.prisma.usuario.create({
+        const user = await this.prisma.usuario.create({
             data,
         });
 
         return user;
     }
 
-    async findoOne(fist_name:string): Promise<User | undefined>{
+    async findoOne(fist_name: string, cnpj: string): Promise<User | undefined> {
         return this.prisma.usuario.findFirst({
-            where:{
-                email:fist_name
+            where: {
+                email: fist_name,
+                empresas: {
+                    some: {
+                        empresa: {
+                            cnpj: cnpj
+                        }
+                    }
+                }
             },
-            include:{
-                empresas:{
-                    include:{
-                        empresa:true
+            include: {
+                empresas: {
+                    where: {
+                        empresa: {
+                            cnpj: cnpj
+                        }
+                    },
+                    include: {
+                        empresa: true
+                    }
+                }
+            }
+        });
+    }
+
+    async findoOneChange(fist_name: string): Promise<User | undefined> {
+        return this.prisma.usuario.findFirst({
+            where: {
+                email: fist_name
+            },
+            include: {
+                empresas: {
+                    include: {
+                        empresa: true
                     }
                 }
             }

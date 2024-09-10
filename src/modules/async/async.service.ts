@@ -12,7 +12,7 @@ export class AsyncService {
             private readonly produto:ProdutoService
         ) { }
 
-    async AsyncPull(lastPulledVersion: string) {
+    async AsyncPull(lastPulledVersion: string,cnpj: string) {
 
 
         let dataFormatted: Date;
@@ -31,20 +31,26 @@ export class AsyncService {
 
 
 
-        const created = await this.fornecedor.ListaFornecedoresCriados(dataFormatted);
-        const updated = await this.fornecedor.ListaFornecedorAlterado(dataFormatted);
+        const created = await this.fornecedor.ListaFornecedoresCriados(dataFormatted,cnpj);
+        const updated = await this.fornecedor.ListaFornecedorAlterado(dataFormatted,cnpj);
         const fornecedor = {
             created,
-            updated,
+            //updated,
+            updated: [],
             deleted: [],
         }
 
-       // const ProdutoCreated = await this.produto.ListaProdutoCriado(dataFormatted,'');
-
+       const ProdutoCreated = await this.produto.ListaProdutoCriado(dataFormatted,cnpj);
+        const produtos ={
+            created: ProdutoCreated,
+            updated: [],
+            deleted: [],
+        }
         return {
             latestVersion: new Date().getTime(),
             changes:{
-                fornecedor
+                fornecedor,
+                produtos
             }
         }
 

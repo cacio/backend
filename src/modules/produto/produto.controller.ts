@@ -1,4 +1,4 @@
-import { Body, Controller, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { ProdutoService } from './produto.service';
 import { CreateProdutoDto, UpdateProdutoDto } from './DTO/produto.dto';
 
@@ -18,4 +18,10 @@ export class ProdutoController {
   async delete(@Param('id') id: string, @Param('cnpj') cnpj: string){
     return this.produtoService.delete(id, cnpj);
   }
+
+  @Get(':cnpj')
+  async findAll(@Param('cnpj') cnpj: string){
+    return this.produtoService.findAll(cnpj);
+  }
+
 }
