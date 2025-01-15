@@ -116,7 +116,7 @@ export class ProdutoService {
         const dataproduct = await this.prisma.produtos.findMany({
             where: {
                 created_at: {
-                    gt: lastPulledVersion
+                    gte: lastPulledVersion
                 },
                 idemp: (await this.prisma.empresa.findFirst({
                     where: {
