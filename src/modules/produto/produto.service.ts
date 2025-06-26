@@ -108,11 +108,7 @@ export class ProdutoService {
     }
 
     async ListaProdutoCriado(lastPulledVersion: Date, cnpj: string) {
-        console.log((await this.prisma.empresa.findFirst({
-            where: {
-                cnpj
-            }
-        })).id);
+
         const dataproduct = await this.prisma.produtos.findMany({
             where: {
                 created_at: {
@@ -127,6 +123,29 @@ export class ProdutoService {
         });
 
         return dataproduct.map(prod => ({
+            ...prod,
+            id: prod.codigo
+        }));
+    }
+    async ListaProdutoAlterado(lastPulledVersion: Date, cnpj: string){
+
+         const empresa = await this.prisma.empresa.findFirst({
+            where: { cnpj },
+        });
+
+        const dataproduct = await this.prisma.produtos.findMany({
+            where: {
+                updated_at: {
+                    gte: lastPulledVersion,
+                },
+                created_at: {
+                    lt: lastPulledVersion, // só pega registros realmente atualizados
+                },
+                idemp: empresa.id,
+            },
+        });
+
+         return dataproduct.map(prod => ({
             ...prod,
             id: prod.codigo
         }));

@@ -35,6 +35,13 @@ export class UsuarioService {
             data,
         });
 
+        await this.prisma.usuarioEmpresa.create({
+            data: {
+                usuarioId: user.id,
+                empresaId: getEmpresa.id,
+            },
+        });
+
         return user;
     }
 

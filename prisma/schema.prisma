@@ -7,23 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model permissoes {
-  idpermissoes Int  @id @default(autoincrement())
-  idmenu       Int?
-  idsubmenu    Int?
-  idusuario    Int?
-}
-
-model submenu {
-  id        Int     @id @default(autoincrement())
-  Nome      String? @db.VarChar(45)
-  idmenu    Int?
-  idusuario Int?
-  link      String? @db.VarChar(45)
-  icone     String? @db.VarChar(45)
-  sort      Int?
-}
-
 model usuario {
   id         String              @id @default(uuid()) @db.VarChar(36)
   nome       String?             @db.VarChar(45)
@@ -31,96 +14,15 @@ model usuario {
   login      String?             @db.VarChar(45)
   passwd     String?             @db.VarChar(150)
   photo      String?             @db.VarChar(500)
-  created_at  DateTime? @default(now()) @db.Timestamp(0)
-  updated_at  DateTime? @default(now()) @db.Timestamp(0)
+  created_at DateTime?           @default(now()) @db.Timestamp(0)
+  updated_at DateTime?           @default(now()) @db.Timestamp(0)
   codrepre   String?             @db.Char(10)
   user_ativo usuario_user_ativo? @default(N)
-  empresas  UsuarioEmpresa[]
-}
-
-model banco {
-  id            Int     @id @default(autoincrement())
-  banco         String? @db.VarChar(3)
-  carteira      String? @db.VarChar(2)
-  agencia       String? @db.VarChar(45)
-  conta         String? @db.VarChar(45)
-  contadv       String? @db.VarChar(45)
-  agenciadv     String? @db.VarChar(45)
-  codigocliente String? @db.VarChar(45)
-  nome          String? @db.VarChar(60)
-}
-
-model bancos_atv {
-  id      Int               @id @default(autoincrement())
-  codigo  String?           @db.VarChar(4)
-  nome    String?           @db.VarChar(45)
-  ativo   bancos_atv_ativo?
-  apelido String?           @db.VarChar(90)
-}
-
-model benificiario_emitente {
-  id          Int     @id @default(autoincrement())
-  nome        String? @db.VarChar(45)
-  endereco    String? @db.VarChar(45)
-  cep         String? @db.VarChar(45)
-  complemento String? @db.VarChar(45)
-  numero      String? @db.VarChar(45)
-  uf          String? @db.VarChar(45)
-  cidade      String? @db.VarChar(45)
-  documento   String? @db.VarChar(45)
-  id_banco    Int?
-}
-
-model boletos {
-  id                  Int                   @id @default(autoincrement())
-  sacado              String?               @db.VarChar(300)
-  sacado_endereco     String?               @db.VarChar(150)
-  sacado_numero       String?               @db.VarChar(45)
-  sacado_cep          String?               @db.VarChar(45)
-  sacado_cnpj         String?               @db.VarChar(20)
-  sacado_uf           String?               @db.VarChar(2)
-  sacado_cidade       String?               @db.VarChar(60)
-  instrucoes          String?               @db.Text
-  agencia             String?               @db.VarChar(45)
-  agencia_dv          String?               @db.VarChar(45)
-  conta               String?               @db.VarChar(45)
-  conta_dv            String?               @db.VarChar(45)
-  carteira            String?               @db.VarChar(45)
-  identificacao       String?               @db.VarChar(45)
-  cedente             String?               @db.VarChar(250)
-  cedente_cpf_cnpj    String?               @db.VarChar(45)
-  cedente_endereco    String?               @db.VarChar(60)
-  cedente_cidade      String?               @db.VarChar(60)
-  cedente_uf          String?               @db.VarChar(2)
-  quantidade          String?               @db.VarChar(45)
-  valor_unitario      Float?                @db.Float
-  aceite              String?               @db.VarChar(45)
-  especie             String?               @db.VarChar(45)
-  especie_doc         String?               @db.VarChar(45)
-  nosso_numero        String?               @db.VarChar(45)
-  numero_documento    String?               @db.VarChar(60)
-  data_vencimento     DateTime?             @db.Date
-  data_documento      DateTime?             @db.Date
-  data_processamento  DateTime?             @db.Date
-  valor_boleto        Float?                @db.Float
-  codigo_barras       String?               @db.VarChar(60)
-  linha_digitavel     String?               @db.VarChar(200)
-  agencia_codigo      String?               @db.VarChar(60)
-  codigo_banco_com_dv String?               @db.VarChar(45)
-  codigo_nfe          Int?
-  numero_duplicata    String?               @db.VarChar(45)
-  impresso_s_n        boletos_impresso_s_n?
-}
-
-model cfop {
-  id            Int     @id @default(autoincrement())
-  Codigo        Int
-  Nome          String? @db.Text
-  dados_ad_fisc String? @db.Text
+  empresas   UsuarioEmpresa[]
 }
 
 model cfop_natura {
-  id                 Int                    @id @default(autoincrement())
+  id                 String                 @id @default(uuid()) @db.VarChar(36)
   Codigo             Int
   cod_especif        String?                @db.VarChar(45)
   Nome               String?                @db.Text
@@ -142,72 +44,60 @@ model cfop_natura {
   calculasn          cfop_natura_calculasn?
   CBENEF             String?                @db.VarChar(60)
   idemp              String?
+  created_at         DateTime?              @default(now()) @db.Timestamp(0)
+  updated_at         DateTime?              @default(now()) @db.Timestamp(0)
+  empresa            empresa?               @relation(fields: [idemp], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_cfop_natura_empresa1")
+  nfe_produtos       nfe_produtos[]
+  nfe                nfe[]
 }
 
 model cidade {
-  id     Int     @id @default(autoincrement())
+  id     String  @id @default(uuid()) @db.VarChar(36)
   nome   String? @db.VarChar(120)
   estado Int?
 }
 
 model duplic_receber {
-  id       Int       @id @default(autoincrement())
-  ndup     String?   @db.VarChar(45)
-  vlrdup   Float?    @db.Float
-  vencdup  DateTime? @db.Date
-  cod_forc String?   @db.VarChar(5)
-  idemp    Int?
-}
-
-model emitente {
-  codigo    Int     @id @default(autoincrement())
-  cnpj      String? @db.VarChar(14)
-  cpf       String? @db.VarChar(11)
-  xnome     String? @db.VarChar(60)
-  xfant     String? @db.VarChar(60)
-  enderemit String? @db.Text
-  xlgr      String? @db.VarChar(60)
-  nro       String? @db.VarChar(60)
-  xcpl      String? @db.VarChar(60)
-  xbairro   String? @db.VarChar(60)
-  cmun      Int?
-  xmun      String? @db.VarChar(60)
-  uf        String? @db.VarChar(2)
-  cep       String? @db.Char(8)
-  cpais     String? @db.Char(4)
-  xpais     String? @db.VarChar(60)
-  fone      String? @db.Char(14)
-  ie        String? @db.VarChar(14)
-  iest      String? @db.VarChar(14)
-  im        String? @db.VarChar(15)
-  cnae      String? @db.VarChar(7)
-  crt       Int?
+  id         String      @id @default(uuid()) @db.VarChar(36)
+  ndup       String?     @db.VarChar(45)
+  vlrdup     Float?      @db.Float
+  vencdup    DateTime?   @db.Date
+  cod_forc   String?     @db.VarChar(5)
+  idemp      String?
+  created_at DateTime?   @default(now()) @db.Timestamp(0)
+  updated_at DateTime?   @default(now()) @db.Timestamp(0)
+  fornecedor fornecedor? @relation(fields: [cod_forc], references: [codigo], onDelete: NoAction, onUpdate: NoAction, map: "fk_duplic_receber_fornecedor1")
+  empresa    empresa?    @relation(fields: [idemp], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_duplic_receber_empresa1")
 }
 
 model empresa {
-  id        String    @id @default(uuid()) @db.VarChar(36)
-  cnpj      String? @db.VarChar(14)
-  cpf       String? @db.VarChar(11)
-  xnome     String? @db.VarChar(60)
-  xfant     String? @db.VarChar(60)
-  enderemit String? @db.Text
-  xlgr      String? @db.VarChar(60)
-  nro       String? @db.VarChar(60)
-  xcpl      String? @db.VarChar(60)
-  xbairro   String? @db.VarChar(60)
-  cmun      Int?
-  xmun      String? @db.VarChar(60)
-  uf        String? @db.VarChar(2)
-  cep       String? @db.Char(8)
-  cpais     String? @db.Char(4)
-  xpais     String? @db.VarChar(60)
-  fone      String? @db.Char(14)
-  ie        String? @db.VarChar(14)
-  iest      String? @db.VarChar(14)
-  im        String? @db.VarChar(15)
-  cnae      String? @db.VarChar(7)
-  crt       Int?
-  usuarios  UsuarioEmpresa[]
+  id                  String                @id @default(uuid()) @db.VarChar(36)
+  cnpj                String?               @db.VarChar(14)
+  cpf                 String?               @db.VarChar(11)
+  xnome               String?               @db.VarChar(60)
+  xfant               String?               @db.VarChar(60)
+  enderemit           String?               @db.Text
+  xlgr                String?               @db.VarChar(60)
+  nro                 String?               @db.VarChar(60)
+  xcpl                String?               @db.VarChar(60)
+  xbairro             String?               @db.VarChar(60)
+  cmun                Int?
+  xmun                String?               @db.VarChar(60)
+  uf                  String?               @db.VarChar(2)
+  cep                 String?               @db.Char(8)
+  cpais               String?               @db.Char(4)
+  xpais               String?               @db.VarChar(60)
+  fone                String?               @db.Char(14)
+  ie                  String?               @db.VarChar(14)
+  iest                String?               @db.VarChar(14)
+  im                  String?               @db.VarChar(15)
+  cnae                String?               @db.VarChar(7)
+  crt                 Int?
+  usuarios            UsuarioEmpresa[]
+  nfe                 nfe[]
+  duplic_receber      duplic_receber[]
+  condicoes_pagamento condicoes_pagamento[]
+  cfop_natura         cfop_natura[]
 }
 
 model UsuarioEmpresa {
@@ -228,136 +118,147 @@ model estado {
 }
 
 model fornecedor {
-  codigo          String    @id @default(uuid()) @db.VarChar(36)
-  cod_retaquarda  String?   @db.VarChar(5)
-  cnpj            String?   @db.VarChar(14)
-  cpf             String?   @db.VarChar(11)
-  xnome           String?   @db.VarChar(60)
-  xfantasia       String?   @db.VarChar(60)
-  enderdest       String?   @db.VarChar(60)
-  xlgr            String?   @db.VarChar(60)
-  nro             String?   @db.VarChar(60)
-  xcpl            String?   @db.VarChar(60)
-  xbairro         String?   @db.VarChar(60)
-  cmun            String?   @db.VarChar(7)
-  xmun            String?   @db.VarChar(60)
-  uf              String?   @db.Char(2)
-  cep             String?   @db.VarChar(8)
-  cpais           String?   @db.VarChar(4)
-  xpais           String?   @db.VarChar(60)
-  fone            String?   @db.VarChar(14)
-  ie              String?   @db.VarChar(14)
-  isuf            String?   @db.VarChar(9)
-  email           String?   @db.VarChar(60)
-  status          String?   @default("0") @db.VarChar(45)
-  id_representate String?   @db.VarChar(10)
-  forma_pag       String?   @db.VarChar(6)
+  codigo          String           @id @default(uuid()) @db.VarChar(36)
+  cod_retaquarda  String?          @db.VarChar(5)
+  cnpj            String?          @db.VarChar(14)
+  cpf             String?          @db.VarChar(11)
+  xnome           String?          @db.VarChar(60)
+  xfantasia       String?          @db.VarChar(60)
+  enderdest       String?          @db.VarChar(60)
+  xlgr            String?          @db.VarChar(60)
+  nro             String?          @db.VarChar(60)
+  xcpl            String?          @db.VarChar(60)
+  xbairro         String?          @db.VarChar(60)
+  cmun            String?          @db.VarChar(7)
+  xmun            String?          @db.VarChar(60)
+  uf              String?          @db.Char(2)
+  cep             String?          @db.VarChar(8)
+  cpais           String?          @db.VarChar(4)
+  xpais           String?          @db.VarChar(60)
+  fone            String?          @db.VarChar(14)
+  ie              String?          @db.VarChar(14)
+  isuf            String?          @db.VarChar(9)
+  email           String?          @db.VarChar(60)
+  status          String?          @default("0") @db.VarChar(45)
+  id_representate String?          @db.VarChar(10)
+  forma_pag       String?          @db.VarChar(6)
   prazo1          Int?
   prazo2          Int?
   prazo3          Int?
   prazo4          Int?
   prazo5          Int?
   idemp           String?
-  created_at      DateTime? @default(now()) @db.Timestamp(0)
-  updated_at      DateTime? @default(now()) @db.Timestamp(0)
+  created_at      DateTime?        @default(now()) @db.Timestamp(0)
+  updated_at      DateTime?        @default(now()) @db.Timestamp(0)
+  nfes            nfe[]
+  duplic_receber  duplic_receber[]
 }
 
 model ncm {
-  codigo    Int     @id @default(autoincrement())
+  codigo    String  @id @default(uuid()) @db.VarChar(36)
   ncm       Int?
   descricao String? @db.Text
 }
 
 model nfe {
-  nfe_codigo            Int                @unique @default(autoincrement())
+  id                    String               @unique @default(uuid()) @db.VarChar(36)
+  nfe_codigo            Int                  @db.TinyInt
   nfe_numeracao         Int?
-  fornecedor_codigo     Int
-  nfe_dtemis            DateTime?          @db.DateTime(0)
-  nfe_dtentrega         DateTime?          @db.Date
-  nfe_total_nota        Float?             @db.Float
-  nfe_total_produtos    Float?             @db.Float
-  nfe_natureza_operacao Int?
-  nfe_totvbcicms        Float?             @db.Float
-  nfe_totvicms          Float?             @db.Float
-  nfe_totvbcicmsst      Float?             @db.Float
-  nfe_totvicmsst        Float?             @db.Float
-  nfe_totvbcipi         Float?             @db.Float
-  nfe_totvipi           Float?             @db.Float
-  nfe_totvbcpis         Float?             @db.Float
-  nfe_totvpis           Float?             @db.Float
-  nfe_totvbccofins      Float?             @db.Float
-  nfe_totvcofins        Float?             @db.Float
-  nfe_vtotfrete         Float?             @db.Float
-  nfe_vtotseguro        Float?             @db.Float
-  nfe_vtotdesconto      Float?             @db.Float
-  nfe_voutros           Float?             @db.Float
-  nfe_formpag           Int?
-  nfe_manifesto         String?            @db.VarChar(10)
+  nfe_serie             String?              @db.VarChar(3)
+  fornecedor_codigo     String               @db.VarChar(36)
+  nfe_dtemis            DateTime?            @db.DateTime(0)
+  nfe_dtentrega         DateTime?            @db.Date
+  nfe_total_nota        Float?               @db.Float
+  nfe_total_produtos    Float?               @db.Float
+  nfe_natureza_operacao String?
+  nfe_totvbcicms        Float?               @db.Float
+  nfe_totvicms          Float?               @db.Float
+  nfe_totvbcicmsst      Float?               @db.Float
+  nfe_totvicmsst        Float?               @db.Float
+  nfe_totvbcipi         Float?               @db.Float
+  nfe_totvipi           Float?               @db.Float
+  nfe_totvbcpis         Float?               @db.Float
+  nfe_totvpis           Float?               @db.Float
+  nfe_totvbccofins      Float?               @db.Float
+  nfe_totvcofins        Float?               @db.Float
+  nfe_vtotfrete         Float?               @db.Float
+  nfe_vtotseguro        Float?               @db.Float
+  nfe_vtotdesconto      Float?               @db.Float
+  nfe_voutros           Float?               @db.Float
+  nfe_formpag           String?
+  nfe_manifesto         String?              @db.VarChar(10)
   nfe_fatumento         nfe_nfe_fatumento?
   idemp                 String?
   nfe_evento            nfe_evento[]
   nfe_produtos          nfe_produtos[]
+  fornecedor            fornecedor           @relation(fields: [fornecedor_codigo], references: [codigo], onDelete: NoAction, onUpdate: NoAction, map: "fk_nfe_fornecedor1")
+  condicoes_pagamento   condicoes_pagamento? @relation(fields: [nfe_formpag], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_nfe_condicoes_pagamento1")
+  created_at            DateTime?            @default(now()) @db.Timestamp(0)
+  updated_at            DateTime?            @default(now()) @db.Timestamp(0)
 
-  @@id([nfe_codigo, fornecedor_codigo])
+  empresa       empresa?        @relation(fields: [idemp], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_nfe_empresa1")
+  cfop_natura   cfop_natura?    @relation(fields: [nfe_natureza_operacao], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_nfe_cfop_natura1")
+  tab_duplicata tab_duplicata[]
+
+  @@index([nfe_formpag], map: "fk_nfe_condicoes_pagamento1")
+  @@index([idemp], map: "fk_nfe_empresa1")
+  @@index([fornecedor_codigo], map: "fk_nfe_fornecedor1")
+  @@index([nfe_natureza_operacao], map: "fk_nfe_cfop_natura1")
 }
 
 model nfe_evento {
-  id           Int       @id @default(autoincrement())
+  id           String    @id @default(uuid()) @db.VarChar(36)
   chave_acesso String?   @db.VarChar(44)
   cstat        String?   @db.VarChar(45)
   protocolo    String?   @db.VarChar(45)
   caminho_xml  String?   @db.VarChar(500)
   data_evento  DateTime? @db.DateTime(0)
   xmotivo      String?   @db.VarChar(500)
-  id_nfe       Int
-  nfe          nfe       @relation(fields: [id_nfe], references: [nfe_codigo], onDelete: NoAction, onUpdate: NoAction, map: "fk_nfe_evento_nfe")
+  id_nfe       String
+  nfe          nfe       @relation(fields: [id_nfe], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_nfe_evento_nfe")
 
-  @@index([id_nfe], map: "fk_nfe_evento_nfe_idx")
+  @@index([id_nfe], map: "fk_nfe_evento_nfe")
 }
 
 model nfe_produtos {
-  codigo            String    @id @default(uuid()) @db.VarChar(36)
+  codigo            String       @id @default(uuid()) @db.VarChar(36)
   nfe_codigo        Int
-  produtos_codigo   Int?
-  nfe_subtotal      Float?  @db.Float
-  nfe_vbcicms       Float?  @db.Float
-  nfe_vicms         Float?  @db.Float
-  nfe_vbcicmsst     Float?  @db.Float
-  nfe_vicmsst       Float?  @db.Float
-  nfe_vbcipi        Float?  @db.Float
-  nfe_vipi          Float?  @db.Float
-  nfe_vbcpis        Float?  @db.Float
-  nfe_vpis          Float?  @db.Float
-  nfe_vbccofins     Float?  @db.Float
-  nfe_vcofins       Float?  @db.Float
-  nfe_vdesconto     Float?  @db.Float
-  nfe_pecas         Float?  @db.Float
-  nfe_quantidade    Float?  @db.Float
-  nfe_valorunitario Float?  @db.Float
-  nfe_infadprod     String? @db.Text
-  nfe_cfop          String? @db.VarChar(60)
-  nfe               nfe     @relation(fields: [nfe_codigo], references: [nfe_codigo], onDelete: NoAction, onUpdate: NoAction, map: "fk_nfe_produtos_nfe1")
+  nfe_id            String
+  produtos_codigo   String?
+  nfe_subtotal      Float?       @db.Float
+  nfe_vbcicms       Float?       @db.Float
+  nfe_vicms         Float?       @db.Float
+  nfe_vbcicmsst     Float?       @db.Float
+  nfe_vicmsst       Float?       @db.Float
+  nfe_vbcipi        Float?       @db.Float
+  nfe_vipi          Float?       @db.Float
+  nfe_vbcpis        Float?       @db.Float
+  nfe_vpis          Float?       @db.Float
+  nfe_vbccofins     Float?       @db.Float
+  nfe_vcofins       Float?       @db.Float
+  nfe_vdesconto     Float?       @db.Float
+  nfe_pecas         Float?       @db.Float
+  nfe_quantidade    Float?       @db.Float
+  nfe_valorunitario Float?       @db.Float
+  nfe_infadprod     String?      @db.Text
+  nfe_cfop          String?
+  nfe               nfe          @relation(fields: [nfe_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_nfe_produtos_nfe1")
+  produtos          produtos?    @relation(fields: [produtos_codigo], references: [codigo], onDelete: NoAction, onUpdate: NoAction, map: "fk_nfe_produtos_produtos1")
+  cfop_natura       cfop_natura? @relation(fields: [nfe_cfop], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_nfe_produtos_cfop_natura1")
 
-  @@index([nfe_codigo], map: "fk_nfe_produtos_nfe1_idx")
-}
-
-model nosso_numero {
-  id               Int     @id @default(autoincrement())
-  tablet           String? @db.VarChar(3)
-  nosso_numero_ini String? @db.VarChar(6)
-  nosso_numero_fim String? @db.VarChar(6)
-  ultimo_numero    String? @db.VarChar(6)
-  id_banco         Int?
+  @@index([nfe_id], map: "fk_nfe_produtos_nfe1")
+  @@index([produtos_codigo], map: "fk_nfe_produtos_produtos1")
+  @@index([nfe_cfop], map: "fk_nfe_produtos_cfop_natura1")
 }
 
 model pais {
-  id    Int     @id @default(autoincrement())
+  id    String  @id @default(uuid()) @db.VarChar(36)
   nome  String? @db.VarChar(60)
   sigla String? @db.VarChar(10)
 }
 
 model preco_produto {
-  id           Int     @id @default(autoincrement())
+  id           String  @id @default(uuid()) @db.VarChar(36)
   preco_venda  Float?  @db.Float
   perc_var_min Float?  @db.Float
   perc_var_max Float?  @db.Float
@@ -366,47 +267,42 @@ model preco_produto {
 }
 
 model produtos {
-  codigo              String    @id @default(uuid()) @db.VarChar(36)
-  cprod               String?   @db.VarChar(60)
-  cean                String?   @db.VarChar(14)
-  xprod               String?   @db.VarChar(120)
+  codigo              String         @id @default(uuid()) @db.VarChar(36)
+  cprod               String?        @db.VarChar(60)
+  cean                String?        @db.VarChar(14)
+  xprod               String?        @db.VarChar(120)
   ncm                 Int?
-  cfop_expecif        String?   @db.Char(60)
-  ceantrib            String?   @db.VarChar(14)
-  unMedida            String?   @db.VarChar(3)
-  dtContagemEstoque   DateTime? @db.Date
-  qtdContagemKg       Float?    @db.Float
+  cfop_expecif        String?        @db.Char(60)
+  ceantrib            String?        @db.VarChar(14)
+  unMedida            String?        @db.VarChar(3)
+  dtContagemEstoque   DateTime?      @db.Date
+  qtdContagemKg       Float?         @db.Float
   qtdContagemPc       Int?
-  pesoLiquido         Float?    @db.Float
-  pesoBruto           Float?    @db.Float
-  aliquotaICMS        Float?    @db.Float
-  percRedBcICMS       Float?    @db.Float
+  pesoLiquido         Float?         @db.Float
+  pesoBruto           Float?         @db.Float
+  aliquotaICMS        Float?         @db.Float
+  percRedBcICMS       Float?         @db.Float
   AliquotaICMSST_MVA  Int?
-  percRedBcICMSST     Float?    @db.Float
-  CSTICMS             String?   @db.VarChar(3)
+  percRedBcICMSST     Float?         @db.Float
+  CSTICMS             String?        @db.VarChar(3)
   CSTIPI              Int?
   CSTPISCOFINS_E      Int?
   CSTPISCOFINS_S      Int?
-  percBcPisCofins     Float?    @db.Float
-  AliquotaPisCofins_E Float?    @db.Float
-  AliquotaPisCofins_S Float?    @db.Float
-  xInfAdProd          String?   @db.VarChar(60)
-  percBcIpi           Float?    @db.Float
-  AliquotaIpi         Float?    @db.Float
-  valor_unitario      Float     @db.Float
-  fatorbcicmsret      Float?    @db.Float
-  fatorvlricmsret     Float?    @db.Float
-  CENQ                String?   @db.VarChar(45)
-  CBENEF              String?   @db.VarChar(60)
+  percBcPisCofins     Float?         @db.Float
+  AliquotaPisCofins_E Float?         @db.Float
+  AliquotaPisCofins_S Float?         @db.Float
+  xInfAdProd          String?        @db.VarChar(60)
+  percBcIpi           Float?         @db.Float
+  AliquotaIpi         Float?         @db.Float
+  valor_unitario      Float          @db.Float
+  fatorbcicmsret      Float?         @db.Float
+  fatorvlricmsret     Float?         @db.Float
+  CENQ                String?        @db.VarChar(45)
+  CBENEF              String?        @db.VarChar(60)
   idemp               String?
-  created_at         DateTime? @default(now()) @db.Timestamp(0)
-  updated_at         DateTime? @default(now()) @db.Timestamp(0)
-}
-
-model sequencia_boleto {
-  id        Int     @id @default(autoincrement())
-  sequencia String? @db.VarChar(4)
-  ano       Int?    @db.Year
+  created_at          DateTime?      @default(now()) @db.Timestamp(0)
+  updated_at          DateTime?      @default(now()) @db.Timestamp(0)
+  nfe_produtos        nfe_produtos[]
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
@@ -433,18 +329,6 @@ model st_trib_pis_cofins {
   @@ignore
 }
 
-model tab_duplicata {
-  id               Int       @id @default(autoincrement())
-  numero_nota      String?   @db.VarChar(45)
-  numero_duplicata String?   @db.VarChar(45)
-  data_emissao     DateTime? @db.Date
-  data_vencimento  DateTime? @db.Date
-  valor_duplicata  Float?    @db.Float
-  valor_nota       Float?    @db.Float
-  forma_pagto      String?   @db.VarChar(45)
-  nosso_numero     String?   @db.VarChar(11)
-}
-
 model tabelacest {
   codigo_tbc    Int    @id @default(autoincrement())
   legal_tbc     Int
@@ -461,27 +345,60 @@ model tabmun {
 }
 
 model tb_manifestos {
-  id          Int       @id @default(autoincrement())
-  data        DateTime? @db.Date
-  n_manifesto String?   @db.VarChar(10)
-  n_item      Int?
-  cod_produto String?   @db.VarChar(60)
-  qtd_prod    String?   @db.VarChar(45)
-  vlr_unit    Decimal?  @db.Decimal(10, 2)
-  vBCSTRet    Float?    @db.Float
-  vICMSSTRet  Float?    @db.Float
+  id           String    @id @default(uuid()) @db.VarChar(36)
+  data         DateTime? @db.Date
+  n_manifesto  String?   @db.VarChar(10)
+  chave_acesso String?   @db.VarChar(44)
+  n_item       Int?
+  cod_produto  String?   @db.VarChar(60)
+  qtd_prod     String?   @db.VarChar(45)
+  vlr_unit     Decimal?  @db.Decimal(10, 2)
+  vBCSTRet     Float?    @db.Float
+  vICMSSTRet   Float?    @db.Float
 }
 
 model unidade_medida {
-  id        Int     @id @default(autoincrement())
+  id        String  @id @default(uuid()) @db.VarChar(36)
   descricao String? @db.Text
 }
 
 model veiculos {
-  id    Int     @id @default(autoincrement())
+  id    String  @id @default(uuid()) @db.VarChar(36)
   placa String? @db.VarChar(45)
   uf    String? @db.VarChar(2)
   rntc  String? @db.VarChar(45)
+}
+
+model condicoes_pagamento {
+  id         String    @id @default(uuid()) @db.VarChar(36)
+  codigo     String?   @db.VarChar(10)
+  descricao  String?   @db.VarChar(100)
+  created_at DateTime? @default(now()) @db.Timestamp(0)
+  updated_at DateTime? @default(now()) @db.Timestamp(0)
+  idemp      String?
+  nfes       nfe[]
+
+  empresa empresa? @relation(fields: [idemp], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_condicoes_pagamento_empresa1")
+
+  @@index([idemp], map: "fk_condicoes_pagamento_empresa1")
+}
+
+model tab_duplicata {
+  id               String    @id @default(uuid()) @db.VarChar(36)
+  numero_nota      String?   @db.VarChar(45)
+  numero_duplicata String?   @db.VarChar(45)
+  data_emissao     DateTime? @db.Date
+  data_vencimento  DateTime? @db.Date
+  valor_duplicata  Float?    @db.Float
+  valor_nota       Float?    @db.Float
+  forma_pagto      String?   @db.VarChar(45)
+  nosso_numero     String?   @db.VarChar(45)
+  nfe_id           String
+  created_at       DateTime? @default(now()) @db.Timestamp(0)
+  updated_at       DateTime? @default(now()) @db.Timestamp(0)
+  nfe              nfe       @relation(fields: [nfe_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_nfe_produtos_nfe2")
+
+  @@index([nfe_id], map: "fk_nfe_produtos_nfe2")
 }
 
 enum bancos_atv_ativo {

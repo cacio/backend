@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/datrabase/PrismaService';
-import { Prisma,fornecedor } from '@prisma/client';
+import { Prisma, fornecedor } from '@prisma/client';
 import { CreateFornecedorDto, UpdateFornecedorDto } from './DTO/fornecedor.dto';
 
 @Injectable()
@@ -110,7 +110,7 @@ export class FornecedorService {
                     idemp: getEmpresa.id
                 }
             });
-           // console.log(for_codigo);
+            // console.log(for_codigo);
             if (!for_codigo) {
                 throw new Error("Fornecedor nao exite");
             }
@@ -174,7 +174,7 @@ export class FornecedorService {
         });
     }
 
-    async ListaFornecedoresCriados(lastPulledVersion: Date,cnpj:string){
+    async ListaFornecedoresCriados(lastPulledVersion: Date, cnpj: string) {
         const getEmpresa = await this.prisma.empresa.findFirst({
             where: {
                 cnpj
@@ -182,41 +182,42 @@ export class FornecedorService {
         });
 
         const datafornec = await this.prisma.fornecedor.findMany({
-            where:{
-                created_at:{
-                    gt:lastPulledVersion
+            where: {
+                created_at: {
+                    gt: lastPulledVersion
                 },
                 idemp: getEmpresa.id
             }
         })
         return datafornec.map(fornecedor => ({
             ...fornecedor,
-            id:fornecedor.codigo
+            id: fornecedor.codigo
         }));
     }
 
-    async ListaFornecedorAlterado(lastPulledVersion: Date,cnpj:string) {
-
+    async ListaFornecedorAlterado(lastPulledVersion: Date, cnpj: string) {
         const getEmpresa = await this.prisma.empresa.findFirst({
-            where: {
-                cnpj
-            }
+            where: { cnpj }
         });
 
-        const datafornec =await this.prisma.fornecedor.findMany({
+        const datafornec = await this.prisma.fornecedor.findMany({
             where: {
                 updated_at: {
-                    gte: lastPulledVersion, // updated_at >= lastPulledVersion
+                    gte: lastPulledVersion,
                 },
-                idemp: getEmpresa.id
+                created_at: {
+                    lt: lastPulledVersion, // só pega registros realmente atualizados
+                },
+                idemp: getEmpresa.id,
             },
         });
 
         return datafornec.map(fornecedor => ({
             ...fornecedor,
-            id: fornecedor.codigo
+            id: fornecedor.codigo,
         }));
     }
+
 
 
 

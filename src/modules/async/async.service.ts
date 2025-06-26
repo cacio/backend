@@ -3,13 +3,16 @@ import { PrismaService } from 'src/datrabase/PrismaService';
 import * as moment from 'moment';
 import { FornecedorService } from '../fornecedor/fornecedor.service';
 import { ProdutoService } from '../produto/produto.service';
-
+import { CondicoesPagamentoService } from '../condicoes-pagamento/condicoes-pagamento.service';
+import { CfopService } from '../cfop/cfop.service';
 @Injectable()
 export class AsyncService {
     constructor(
             private prisma: PrismaService,
             private readonly fornecedor:FornecedorService,
-            private readonly produto:ProdutoService
+            private readonly produto:ProdutoService,
+            private readonly condicoesPagamento: CondicoesPagamentoService,
+            private readonly cfop: CfopService,
         ) { }
 
     async AsyncPull(lastPulledVersion: string,cnpj: string) {
@@ -35,22 +38,41 @@ export class AsyncService {
         const updated = await this.fornecedor.ListaFornecedorAlterado(dataFormatted,cnpj);
         const fornecedor = {
             created,
-            //updated,
-            updated: [],
+            updated,
             deleted: [],
         }
 
        const ProdutoCreated = await this.produto.ListaProdutoCriado(dataFormatted,cnpj);
-        const produtos ={
+       const ProdutoUpdated = await this.produto.ListaProdutoAlterado(dataFormatted,cnpj);
+       const produtos ={
             created: ProdutoCreated,
-            updated: [],
+            updated: ProdutoUpdated,
             deleted: [],
         }
+
+        const condicoesPagamentoCreated = await this.condicoesPagamento.ListaCondicoesPagamentoCriado(dataFormatted,cnpj);
+        const condicoesPagamentoUpdated = await this.condicoesPagamento.ListaCondicoesPagamentoAlterado(dataFormatted,cnpj);
+        const condicoespagamento = {
+            created: condicoesPagamentoCreated,
+            updated: condicoesPagamentoUpdated,
+            deleted: [],
+        }
+
+        const cfopCreated = await this.cfop.ListaCfopCriados(dataFormatted,cnpj);
+        const cfopUpdated = await this.cfop.ListaCfopAlterados(dataFormatted,cnpj);
+        const cfop_natura = {
+            created: cfopCreated,
+            updated: cfopUpdated,
+            deleted: [],
+        }
+
         return {
             latestVersion: new Date().getTime(),
             changes:{
                 fornecedor,
-                produtos
+                produtos,
+                condicoespagamento,
+                cfop_natura,
             }
         }
 
