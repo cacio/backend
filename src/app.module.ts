@@ -7,9 +7,10 @@ import { ProdutoModule } from './modules/produto/produto.module';
 import { EmpresaModule } from './modules/empresa/empresa.module';
 import { CondicoesPagamentoModule } from './modules/condicoes-pagamento/condicoes-pagamento.module';
 import { CfopModule } from './modules/cfop/cfop.module';
+import { ManifestoModule } from './modules/manifesto/manifesto.module';
 
 @Module({
-  imports: [UsuarioModule, AuthModule, AsyncModule, FornecedorModule, ProdutoModule, EmpresaModule, CondicoesPagamentoModule, CfopModule],
+  imports: [UsuarioModule, AuthModule, AsyncModule, FornecedorModule, ProdutoModule, EmpresaModule, CondicoesPagamentoModule, CfopModule, ManifestoModule],
   controllers: [],
   providers: [],
 })

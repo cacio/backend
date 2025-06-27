@@ -18,7 +18,7 @@ export class ProdutoService {
 
             const produtoExistes = await this.prisma.produtos.findFirst({
                 where: {
-                    codigo: produto.codigo,
+                    cprod: produto.cprod,
                     idemp: getEmpresa.id
                 }
             });

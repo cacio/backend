@@ -5,6 +5,7 @@ import { FornecedorService } from '../fornecedor/fornecedor.service';
 import { ProdutoService } from '../produto/produto.service';
 import { CondicoesPagamentoService } from '../condicoes-pagamento/condicoes-pagamento.service';
 import { CfopService } from '../cfop/cfop.service';
+import { ManifestoService } from '../manifesto/manifesto.service';
 @Injectable()
 export class AsyncService {
     constructor(
@@ -13,11 +14,12 @@ export class AsyncService {
             private readonly produto:ProdutoService,
             private readonly condicoesPagamento: CondicoesPagamentoService,
             private readonly cfop: CfopService,
+            private readonly ManifestoService: ManifestoService,
         ) { }
 
-    async AsyncPull(lastPulledVersion: string,cnpj: string) {
+    async AsyncPull(lastPulledVersion: string,cnpj: string,codrepre:string) {
 
-
+        console.log(codrepre);
         let dataFormatted: Date;
 
         if (lastPulledVersion !== '0') {
@@ -66,6 +68,13 @@ export class AsyncService {
             deleted: [],
         }
 
+        const manifestoCreated = await this.ManifestoService.ListaManifestoCriado(dataFormatted,cnpj,codrepre);
+        const tb_manifestos = {
+            created: manifestoCreated,
+            updated: [],
+            deleted: [],
+        }
+
         return {
             latestVersion: new Date().getTime(),
             changes:{
@@ -73,6 +82,7 @@ export class AsyncService {
                 produtos,
                 condicoespagamento,
                 cfop_natura,
+                tb_manifestos,
             }
         }
 
