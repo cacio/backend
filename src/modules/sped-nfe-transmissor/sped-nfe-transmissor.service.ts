@@ -1,13 +1,13 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { PrismaService } from 'src/datrabase/PrismaService';
-import { Make, Tools, xml2json } from 'node-sped-nfe';
+import { Make, Tools, xml2json, Complements } from 'node-sped-nfe-custom';
 import { join } from 'path'
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { TransmissaoNfeDto } from './DTO/transmissao-nfe.dto';
-
-
+import { format } from 'date-fns-tz';
+import { limparCamposZero } from '../../utils/limpar-campos-zero';
 @Injectable()
 export class SpedNfeTransmissorService {
     constructor(private prisma: PrismaService) { }
@@ -73,7 +73,55 @@ export class SpedNfeTransmissorService {
 
                 try {
                     let NFe = new Make();
-                    NFe.tagInfNFe({ Id: `NFe${transmissao.evento.chave_acesso}`, versao: '4.00' });
+
+                    const jaExiste = await this.prisma.nfe_evento.findFirst({
+                        where: {
+                            numero_nfe: transmissao.nfe.id,
+                            codigo_nfe: transmissao.nfe.nfe_codigo,
+                            cstat: '100' // NF-e autorizada
+                        }
+                    });
+
+                    if (jaExiste) {
+                        const retornoCompleto = {
+                                retEnviNFe: {
+                                    tpAmb: empresa.ConfiguracaoNFe.tpAmb,
+                                    verAplic: "",
+                                    cStat: '104',
+                                    xMotivo: 'Lote processado',
+                                    cUF: empresa.cmun?.toString().substring(0, 2) || '43',
+                                    dhRecbto: jaExiste.data_evento,
+                                    protNFe: {
+                                        infProt: {
+                                            tpAmb: empresa.ConfiguracaoNFe.tpAmb,
+                                            verAplic: "",
+                                            chNFe: jaExiste.chave_acesso,
+                                            dhRecbto: jaExiste.data_evento,
+                                            nProt: jaExiste.protocolo,
+                                            digVal: jaExiste.digVal,
+                                            cStat: jaExiste.cstat,
+                                            xMotivo: jaExiste.xmotivo,
+                                        },
+                                        '@versao': '4.00'
+                                    },
+                                    '@versao': '4.00',
+                                    '@xmlns': 'http://www.portalfiscal.inf.br/nfe'
+                                }
+                            }
+                        resultados.push({
+                            nfe_codigo: transmissao.nfe.nfe_codigo,
+                            idnfe: transmissao.nfe.id,
+                            xml: jaExiste.caminho_xml,
+                            ideventos: jaExiste.id,
+                            retorno: JSON.stringify(retornoCompleto),
+                            status: 'sucesso',
+                            erro: '',
+                        });
+
+                        continue; // pula para o próximo sem enviar novamente
+                    }
+
+                    NFe.tagInfNFe({ Id: null, versao: '4.00' });
 
                     const cfop = await this.prisma.cfop_natura.findFirst({
                         where: {
@@ -81,21 +129,28 @@ export class SpedNfeTransmissorService {
                         }
                     });
 
+                    const chaveManifeto = await this.prisma.tb_manifestos.findFirst({
+                        where: {
+                            n_manifesto: transmissao.nfe.nfe_manifesto,
+                            idemp: empresa.id
+                        }
+                    });
+                    //console.log(transmissao.nfe.nfe_codigo);
 
                     NFe.tagIde({
                         cUF: String(empresa.cmun).substring(0, 2),
-                        cNF: transmissao.nfe.nfe_codigo,
+                        cNF: String(transmissao.nfe.nfe_codigo).padStart(8, "0"),
                         natOp: cfop.Nome,
                         mod: "55",
-                        serie: transmissao.nfe.nfe_serie,
+                        serie: String(Number(transmissao.nfe.nfe_serie)),
                         nNF: transmissao.nfe.nfe_numeracao,
-                        dhEmi: new Date(transmissao.nfe.nfe_dtemis).toISOString(),
+                        dhEmi: format(new Date(transmissao.nfe.nfe_dtemis), "yyyy-MM-dd'T'HH:mm:ssXXX", { timeZone: 'America/Sao_Paulo' }),
                         tpNF: "1",
                         idDest: "1",
                         cMunFG: empresa.cmun,
                         tpImp: "3",
                         tpEmis: "1",
-                        cDV: String(transmissao.evento.chave_acesso).substring(-1),
+                        cDV: "1",
                         tpAmb: empresa.ConfiguracaoNFe.tpAmb,
                         finNFe: "1",
                         indFinal: "0",
@@ -105,6 +160,7 @@ export class SpedNfeTransmissorService {
                         verProc: "4.13"
                     });
 
+                    //NFe.tagRefNFe(chaveManifeto.chave_acesso);
                     NFe.tagEmit({
                         CNPJ: empresa.cnpj,
                         xNome: empresa.xnome,
@@ -113,18 +169,24 @@ export class SpedNfeTransmissorService {
                         CRT: empresa.crt
                     });
 
-                    NFe.tagEnderEmit({
+                    const enderecoEmitente = Object.entries({
                         xLgr: empresa.xlgr,
                         nro: empresa.nro,
                         xBairro: empresa.xbairro,
                         cMun: empresa.cmun,
                         xMun: empresa.xmun,
-                        UF: empresa.nro,
+                        UF: empresa.uf,
                         CEP: empresa.cep,
                         cPais: empresa.cpais,
                         xPais: empresa.xpais,
                         fone: empresa.fone
-                    });
+                    }).reduce((acc, [key, value]) => {
+                        if (value !== null && value !== undefined && value !== '') {
+                            acc[key] = value;
+                        }
+                        return acc;
+                    }, {} as Record<string, any>);
+                    NFe.tagEnderEmit(enderecoEmitente);
 
                     const clienteDest = await this.prisma.fornecedor.findUnique({
                         where: {
@@ -133,13 +195,15 @@ export class SpedNfeTransmissorService {
                         }
                     })
 
+                    //console.log(clienteDest);
+
                     NFe.tagDest({
-                        CPF: clienteDest.cpf,
+                        //CPF: clienteDest.cpf,
                         CNPJ: clienteDest.cnpj,
                         xNome: `(${clienteDest.cod_retaquarda}) ${clienteDest.xnome}`,
-                        IE: clienteDest.ie,
-                        ISUF: clienteDest.isuf,
                         indIEDest: clienteDest.ie ? 1 : 2,
+                        IE: clienteDest.ie,
+                        //ISUF: clienteDest.isuf,
                         email: clienteDest.email
                     });
 
@@ -160,11 +224,12 @@ export class SpedNfeTransmissorService {
 
 
                     let tot_prod_voutros = 0;
+                    let obsitemfator = '';
                     const listaProdutos = await Promise.all(
                         produtos.map(async (p, index) => {
                             const dadosproduto = await this.prisma.produtos.findUnique({
                                 where: {
-                                    codigo: p.codigo,
+                                    codigo: p.produtos_codigo,
                                     idemp: empresa.id
                                 }
                             });
@@ -173,19 +238,20 @@ export class SpedNfeTransmissorService {
                             const vator = parseFloat(String(transmissao.nfe.nfe_voutros)) / parseFloat(String(transmissao.nfe.nfe_total_produtos));
                             const prod_voutros = parseFloat((vator * valor_qv).toFixed(2));
                             tot_prod_voutros += prod_voutros;
-
+                            obsitemfator += p.nfe_infadprod;
                             const dadosmanifesto = transmissao.manifestos.find((mani) =>
-                                mani.n_manifesto == transmissao.nfe.nfe_manifesto && mani.cod_produto == p.codigo
+                                mani.n_manifesto == transmissao.nfe.nfe_manifesto && mani.cod_produto == dadosproduto.cprod
                             );
 
-                            return {
-                                item: index + 1,
-                                cProd: p.codigo,
-                                cEAN: dadosproduto?.cean ?? 'SEM GTIN',
+                            //console.log(dadosmanifesto,' - ',transmissao.nfe.nfe_manifesto,' - ',dadosproduto.cprod);
+                            const numeromanifesto = await this.somenteNumeros(transmissao.nfe.nfe_manifesto.substring(0, 15) || '');
+                            return limparCamposZero({
+                                cProd: p.produtos_codigo,
+                                cEAN: dadosproduto?.cean == '0' || dadosproduto?.cean == '' ? 'SEM GTIN' : dadosproduto?.cean,
                                 xProd: dadosproduto?.xprod ?? '',
                                 NCM: String(dadosproduto?.ncm ?? '').padStart(8, "0"),
                                 cBenef: cfop?.CBENEF || dadosproduto?.CBENEF || '',
-                                EXTIPI: '',
+                                //EXTIPI: '',
                                 CFOP: p.nfe_cfop,
                                 uCom: dadosproduto?.unMedida ?? 'UN',
                                 qCom: p.nfe_quantidade,
@@ -195,79 +261,337 @@ export class SpedNfeTransmissorService {
                                 uTrib: dadosproduto?.unMedida ?? 'UN',
                                 qTrib: p.nfe_quantidade,
                                 vUnTrib: p.nfe_valorunitario,
-                                vFrete: 0,
-                                vSeg: 0,
-                                vDesc: 0,
-                                vOutro: prod_voutros || 0,
+                                //vFrete: Number(0).toFixed(2),
+                                //vSeg: Number(0).toFixed(2),
+                                //vDesc: Number(0).toFixed(2),
+                                vOutro: parseFloat(String(prod_voutros)) || Number(0).toFixed(2),
                                 indTot: 1,
-                                xPed: transmissao.nfe.nfe_manifesto || '',
-                                nItemPed: dadosmanifesto?.n_item || '',
-                                nFCI: ''
-                            };
+                                xPed: numeromanifesto || '0',
+                                nItemPed: dadosmanifesto?.n_item || '0',
+                                //nFCI: ''
+                            });
                         })
                     );
 
+                    //console.log(listaProdutos);
                     NFe.tagProd(listaProdutos);
 
-                    produtos.forEach(async (_, index) => {
+                    for (let index = 0; index < produtos.length; index++) {
+                        const p = produtos[index];
+                        //console.log(p);
                         const dadosproduto = await this.prisma.produtos.findUnique({
                             where: {
-                                codigo: _.codigo,
+                                codigo: p.produtos_codigo,
                                 idemp: empresa.id
                             }
                         });
 
-                        NFe.taginfAdProd(index,{
-                            item:index + 1,
-                            infAdProd:`PC:${_.nfe_pecas}`
-                        });
 
-                        let csticms = 0;
-                        if(cfop.calculasn == 'N'){
-                            csticms = Number(cfop.aliquotaICMS) > 0 ? Number(cfop.CSTICMS) : Number(dadosproduto.CSTICMS);
-                        }else{
-                            csticms = Number(cfop.CSTPISCOFINS) > 0 ? Number(cfop.CSTPISCOFINS) : Number(dadosproduto.CSTPISCOFINS_S);
+                        let csticms = '';
+                        let aliquotaICMS = 0;
+                        let AliquotaICMSST_MVA = 0;
+                        let percRedBcICMS = 0;
+                        let CSTIPI = 0;
+                        let AliquotaIpi = 0;
+                        let CSTPISCOFINS = 0;
+                        let AliquotaPis = 0;
+                        let AliquotaCofins = 0;
+                        if (cfop.calculasn == 'N') {
+                            csticms = String(cfop.CSTICMS);
+                            aliquotaICMS = 0;
+                            AliquotaICMSST_MVA = 0;
+                            percRedBcICMS = 0;
+                            CSTIPI = cfop.CSTIPI;
+                            AliquotaIpi = 0;
+                            CSTPISCOFINS = cfop.CSTPISCOFINS;
+                            AliquotaPis = 0;
+                            AliquotaCofins = 0;
+                        } else {
+                            csticms = Number(cfop.aliquotaICMS) > 0 ? String(cfop.CSTICMS) : String(dadosproduto.CSTICMS);
+                            aliquotaICMS = Number(cfop.aliquotaICMS) > 0 ? Number(cfop.aliquotaICMS) : dadosproduto.aliquotaICMS;
+                            AliquotaICMSST_MVA = Number(cfop.AliquotaICMSST_MVA) > 0 ? Number(cfop.AliquotaICMSST_MVA) : dadosproduto.AliquotaICMSST_MVA;
+                            percRedBcICMS = Number(cfop.percRedBcICMS) > 0 ? Number(cfop.percRedBcICMS) : dadosproduto.percRedBcICMSST;
+                            CSTIPI = cfop.percBcIpi > 0 ? cfop.CSTIPI : dadosproduto.CSTIPI;
+                            AliquotaIpi = cfop.AliquotaIpi > 0 ? cfop.AliquotaIpi : dadosproduto.AliquotaIpi;
+                            CSTPISCOFINS = cfop.percRedBcICMS > 0 ? cfop.CSTPISCOFINS : dadosproduto.CSTPISCOFINS_S;
+                            AliquotaPis = cfop.AliquotaPis > 0 ? cfop.AliquotaPis : dadosproduto.AliquotaPisCofins_S;
+                            AliquotaCofins = cfop.AliquotaCofins > 0 ? cfop.AliquotaCofins : dadosproduto.AliquotaPisCofins_S;
+                            if (CSTPISCOFINS == 0) {
+                                CSTPISCOFINS = cfop.CSTPISCOFINS;
+                            }
+                        }
+                        //NFe.tagProdICMS(index, { orig: 0, CST: '00', modBC: 3, vBC: 0, pICMS: 0, vICMS: 0 });
+                        //console.log(csticms);
+                        try {
+                            NFe.tagProdICMS(index, {
+                                orig: "0", // origem da mercadoria
+                                CST: csticms,
+                                modBC: 3,
+                                vBC: p.nfe_vbcicms,
+                                pICMS: aliquotaICMS,
+                                vICMS: p.nfe_vicms,
+                                //pFCP: null,
+                                //vFCP: null,
+                                //vBCFCP: null,
+                                modBCST: 4,
+                                pMVAST: AliquotaICMSST_MVA,
+                                // pRedBCST: '',
+                                vBCST: p.nfe_vbcicmsst,
+                                pICMSST: aliquotaICMS,
+                                vICMSST: p.nfe_vbcicmsst,
+                                //vBCFCPST: null,
+                                //pFCPST: null,
+                                //vFCPST: null,
+                                // vICMSDeson: '',
+                                // motDesICMS: '',
+                                pRedBC: (100 - percRedBcICMS),
+                                // vICMSOp: '',
+                                // pDif: '',
+                                // vICMSDif: '',
+                                vBCSTRet: p.vBCSTRet,
+                                pST: 12.00,
+                                vICMSSTRet: p.vICMSSTRet,
+                                //vBCFCPSTRet: null,
+                                //pFCPSTRet: null,
+                                //vFCPSTRet: null,
+                                vICMSSubstituto: 0.01,
+                            });
+
+                            console.log(String(CSTIPI).padStart(2, "0"));
+                            NFe.tagProdIPI(index, {
+                                //clEnq: '',
+                                //CNPJProd: '',
+                                // cSelo: '',
+                                // qSelo: '',
+                                cEnq: dadosproduto.CENQ,
+                                CST: String(CSTIPI).padStart(2, "0"),
+                                vIPI: p.nfe_vipi,
+                                vBC: p.nfe_vbcipi,
+                                pIPI: AliquotaIpi,
+                                // qUnid: '',
+                                // vUnid: ''
+                            });
+
+                            //NFe.tagProdICMSSN(index+1, { orig: "0", CSOSN: "400" });
+
+                            NFe.tagProdPIS(index, {
+                                CST: String(CSTPISCOFINS).padStart(2, "0"),
+                                vBC: p.nfe_vbcpis,
+                                pPIS: AliquotaPis,
+                                //qBCProd: 0,
+                                vAliqProd: 0,
+                                vPIS: p.nfe_vpis,
+                            });
+
+                            NFe.tagProdCOFINS(index, {
+                                CST: String(CSTPISCOFINS).padStart(2, "0"),
+                                vBC: p.nfe_vbccofins,
+                                pCOFINS: AliquotaCofins,
+                                vCOFINS: p.nfe_vcofins,
+                                //qBCProd: 0,
+                                vAliqProd: 0,
+
+                            });
+
+                            console.log(String(CSTPISCOFINS).padStart(2, "0"));
+
+                            NFe.taginfAdProd(index, {
+                                infAdProd: `PC:${p.nfe_pecas}`
+                            });
+                        } catch (error) {
+                            if (error instanceof HttpException) {
+                                throw error;
+                            } else {
+                                console.error('Error during push operation:', error);
+                                throw new HttpException(
+                                    'Ocorreu um erro durante a trasmição',
+                                    HttpStatus.INTERNAL_SERVER_ERROR,
+                                );
+                            }
                         }
 
-                        NFe.tagProdICMS(index+1,{
-                            item: index + 1,
-                            orig:'0',
-                            CST:csticms
+                    };
+                    NFe.tagICMSTot({
+                        vBC: transmissao.nfe.nfe_totvbcicms.toFixed(2),
+                        vICMS: transmissao.nfe.nfe_totvicms.toFixed(2),
+                        vICMSDeson: "0.00",
+                        vFCP: "0.00",
+                        vBCST: transmissao.nfe.nfe_totvbcicmsst.toFixed(2),
+                        vST: transmissao.nfe.nfe_totvicmsst.toFixed(2),
+                        vFCPST: "0.00",
+                        vFCPSTRet: "0.00",
+                        vProd: transmissao.nfe.nfe_total_produtos.toFixed(2),
+                        vFrete: "0.00",
+                        vSeg: "0.00",
+                        vDesc: "0.00",
+                        vII: "0.00",
+                        vIPI: transmissao.nfe.nfe_totvipi.toFixed(2),
+                        vIPIDevol: "0.00",
+                        vPIS: transmissao.nfe.nfe_totvpis.toFixed(2),
+                        vCOFINS: transmissao.nfe.nfe_totvcofins.toFixed(2),
+                        vOutro: transmissao.nfe.nfe_voutros.toFixed(2),
+                        vNF: transmissao.nfe.nfe_total_nota.toFixed(2)
+                    } as any);
+                    NFe.tagTransp({ modFrete: 0 });
 
-                        })
+                    const formpag = await this.prisma.condicoes_pagamento.findFirst({
+                        where: {
+                            codigo: String(transmissao.nfe.nfe_formpag).padStart(4, "0"),
+                            idemp: empresa.id
+                        }
+                    })
 
-                        //NFe.tagProdICMSSN(index+1, { orig: "0", CSOSN: "400" });
 
-                        /*NFe.tagProdPIS(index+1, {
-                        CST: "49",
-                        qBCProd: 0,
-                        vAliqProd: 0,
-                        vPIS: 0,
-                        });
-
-                        NFe.tagProdCOFINS(index+1, {
-                        CST: "49",
-                        qBCProd: 0,
-                        vAliqProd: 0,
-                        vCOFINS: 0,
-                        });*/
-                  });
-
-                } catch (error) {
-                    resultados.push({
-                        nfe_codigo: transmissao.nfe.nfe_codigo,
-                        status: 'erro',
-                        erro: error.message,
+                    NFe.tagFat({
+                        nFat: `Nº Fatura: ${transmissao.nfe.nfe_codigo} - ${formpag.descricao} - Vlr Tot: ${transmissao.nfe.nfe_total_nota}`,
+                        vOrig: transmissao.nfe.nfe_total_nota,
+                        vDesc: 0,
+                        vLiq: transmissao.nfe.nfe_total_nota,
                     });
 
+                    let valorpag = 0;
+                    const listaDup = await Promise.all(
+                        transmissao.duplicatas.map((dup, index) => {
+                            valorpag += dup.valor_duplicata;
+                            return {
+                                nDup: String(index + 1).padStart(3, "0"),
+                                dVenc: format(new Date(dup.data_vencimento), "yyyy-MM-dd", { timeZone: 'America/Sao_Paulo' }),
+                                vDup: dup.valor_duplicata
+                            }
+                        })
+                    )
+
+                    let tpag = '';
+                    if (listaDup.length > 1) {
+                        tpag = '15';
+                    } else {
+                        tpag = '01';
+                    }
+
+                    if (listaDup.length > 0) {
+                        NFe.tagDup(listaDup);
+                    }else{
+                        valorpag = transmissao.nfe.nfe_total_nota;
+                    }
+                    //NFe.tagTroco("0.00");
+
+                    NFe.tagDetPag([{ tPag: tpag, vPag: valorpag }]);
+                    const manifestoadfisco = await this.somenteNumeros(transmissao.nfe.nfe_manifesto.substring(0, 15) || '');
+                    let msgmanifeto = '';
+
+                    if(manifestoadfisco){
+                         msgmanifeto = `Referente ao manifesto n°:${manifestoadfisco}`;
+                    }else{
+                         msgmanifeto = '';
+                    }
+
+                    const adfisc = `${msgmanifeto} ${cfop.dados_ad_fisc} ${obsitemfator}`;
+
+                    if(adfisc.trim()){
+                        NFe.tagInfAdic({
+                            infAdFisco: `${adfisc.trim()}`,
+                            //  infCpl: ''
+                        })
+                    }
+
+
+                    NFe.tagInfRespTec({ CNPJ: "92113026000164", xContato: "PRODASIQ Desenvolvimento de Sistema Eireli", email: "contato@prodasiq.com", fone: "555133913625" })
+
+                    const xmlGerado = NFe.xml(); // XML gerado ainda não assinado
+
+                    const xmlAssinado = await eTools.xmlSign(xmlGerado); // XML assinado
+
+                    const valid = await eTools.validarNFe(xmlAssinado)
+
+                    let resultadoEnvio = "";
+                    let jsonRetorno = "";
+
+                    if (valid) {
+                        resultadoEnvio = await eTools.sefazEnviaLote(xmlAssinado, { idLote: 1, indSinc: 1 });
+
+                        const retornoObj = await xml2json(resultadoEnvio);
+                        const cStat = (retornoObj as any)?.retEnviNFe?.protNFe?.infProt?.cStat;
+                        let idevent = '';
+                        let nfeProc = '';
+                        if (cStat === '100') {
+                            nfeProc = Complements.toAuthorize(xmlAssinado, resultadoEnvio);
+                            const infProt = (retornoObj as any)?.retEnviNFe?.protNFe?.infProt;
+                            const idevento = await this.prisma.nfe_evento.create({
+                                data: {
+                                    chave_acesso: infProt?.chNFe,
+                                    serie: transmissao.nfe.nfe_serie,
+                                    cstat: infProt?.cStat,
+                                    protocolo: infProt?.nProt,
+                                    digVal: infProt?.digVal,
+                                    caminho_xml: nfeProc, // XML completo da NF-e autorizada
+                                    data_evento: new Date(infProt?.dhRecbto),
+                                    xmotivo: infProt?.xMotivo,
+                                    numero_nfe: transmissao.nfe.id,
+                                    codigo_nfe: transmissao.nfe.nfe_codigo
+                                    //id_nfe: transmissao.nfe.id, // certifique-se de que `id` da NFe esteja presente
+                                },
+                            });
+                            idevent = idevento.id;
+                        } else {
+                            const infProt = (retornoObj as any)?.retEnviNFe?.protNFe?.infProt;
+                            const idevento = await this.prisma.nfe_evento.create({
+                                data: {
+                                    chave_acesso: infProt?.chNFe,
+                                    serie: transmissao.nfe.nfe_serie,
+                                    cstat: infProt?.cStat,
+                                    protocolo: infProt?.nProt,
+                                    digVal: infProt?.digVal,
+                                    caminho_xml: xmlAssinado, // XML completo da NF-e autorizada
+                                    data_evento: new Date(infProt?.dhRecbto),
+                                    xmotivo: infProt?.xMotivo,
+                                    numero_nfe: transmissao.nfe.id,
+                                    codigo_nfe: transmissao.nfe.nfe_codigo
+                                    // id_nfe: transmissao.nfe.id, // certifique-se de que `id` da NFe esteja presente
+                                },
+                            });
+                            idevent = idevento.id;
+                        }
+
+                        jsonRetorno = JSON.stringify(retornoObj);
+
+                        resultados.push({
+                            nfe_codigo: transmissao.nfe.nfe_codigo,
+                            idnfe: transmissao.nfe.id,
+                            xml: nfeProc || xmlAssinado,
+                            ideventos: idevent,
+                            retorno: jsonRetorno,
+                            status: 'sucesso',
+                            erro: '',
+                        });
+
+                    } else {
+                        resultadoEnvio = valid;
+
+                        resultados.push({
+                            nfe_codigo: transmissao.nfe.nfe_codigo,
+                            idnfe: transmissao.nfe.id,
+                            xml: xmlGerado,
+                            retorno: resultadoEnvio,
+                            status: 'erro',
+                            erro: resultadoEnvio,
+                        });
+                    }
+
+                } catch (error) {
+                    //throw error;
+                    console.log(error);
+                   // resultados.push();
+                    throw new HttpException({
+                        nfe_codigo: transmissao.nfe.nfe_codigo,
+                        idnfe: transmissao.nfe.id,
+                        status: 'erro',
+                        erro: error?.message ?? error,
+                    }, HttpStatus.NOT_FOUND);
                 }
-
-
-
             }
 
             return {
-                message: 'SEFAZ está em operação',
+                message: resultados,
                 info: ret,
             };
 
@@ -275,13 +599,22 @@ export class SpedNfeTransmissorService {
             if (error instanceof HttpException) {
                 throw error;
             } else {
+
+                const resp = {
+                    msg: 'Ocorreu um erro durante a trasmição',
+                    erro: error
+                }
                 console.error('Error during push operation:', error);
                 throw new HttpException(
-                    'Ocorreu um erro durante a trasmição',
+                    resp,
                     HttpStatus.INTERNAL_SERVER_ERROR,
                 );
             }
         }
+    }
+
+    async somenteNumeros(valor?: string | null): Promise<string> {
+        return (valor || '').replace(/\D/g, '');
     }
 
 }
