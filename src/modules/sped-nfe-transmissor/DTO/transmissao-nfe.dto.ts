@@ -322,3 +322,23 @@ export class TransmissaoNfeDto {
   @Type(() => EnventoDto)
   evento: EnventoDto;
 }
+
+export class CancelamentoDto{
+  @IsString()
+  chNFe:string
+
+  @IsString()
+  nProt:string;
+
+  @IsString()
+  justificativa:string;
+
+  @IsString()
+  serie: string;
+
+  @IsString()
+  numero_nfe:string;
+
+  @IsString()
+  codigo_nfe:string;
+}

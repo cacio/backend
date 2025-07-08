@@ -1,6 +1,6 @@
 import { Controller, Post,HttpCode, Param, Body,UsePipes, ValidationPipe } from '@nestjs/common';
 import { SpedNfeTransmissorService } from './sped-nfe-transmissor.service';
-import { TransmissaoNfeDto } from './DTO/transmissao-nfe.dto';
+import { TransmissaoNfeDto,CancelamentoDto } from './DTO/transmissao-nfe.dto';
 
 @Controller('sped-nfe-transmissor')
 export class SpedNfeTransmissorController {
@@ -17,5 +17,10 @@ export class SpedNfeTransmissorController {
   @HttpCode(200)
   async TransmicaoNfe(@Body() dadosNFE:TransmissaoNfeDto[], @Param('cnpj') cnpj:string){
     return this.spedNfeTransmissorService.transmitirNFE(dadosNFE,cnpj);
+  }
+  @Post('cancelamento/:cnpj')
+  @HttpCode(200)
+  async CancelamentoNFe(@Body() dados:CancelamentoDto,@Param('cnpj') cnpj:string){
+    return this.spedNfeTransmissorService.HandlerCancelamentoNFe(dados,cnpj);
   }
 }

@@ -5,7 +5,7 @@ import { join } from 'path'
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { TransmissaoNfeDto } from './DTO/transmissao-nfe.dto';
+import { TransmissaoNfeDto, CancelamentoDto } from './DTO/transmissao-nfe.dto';
 import { format } from 'date-fns-tz';
 import { limparCamposZero } from '../../utils/limpar-campos-zero';
 @Injectable()
@@ -84,30 +84,30 @@ export class SpedNfeTransmissorService {
 
                     if (jaExiste) {
                         const retornoCompleto = {
-                                retEnviNFe: {
-                                    tpAmb: empresa.ConfiguracaoNFe.tpAmb,
-                                    verAplic: "",
-                                    cStat: '104',
-                                    xMotivo: 'Lote processado',
-                                    cUF: empresa.cmun?.toString().substring(0, 2) || '43',
-                                    dhRecbto: jaExiste.data_evento,
-                                    protNFe: {
-                                        infProt: {
-                                            tpAmb: empresa.ConfiguracaoNFe.tpAmb,
-                                            verAplic: "",
-                                            chNFe: jaExiste.chave_acesso,
-                                            dhRecbto: jaExiste.data_evento,
-                                            nProt: jaExiste.protocolo,
-                                            digVal: jaExiste.digVal,
-                                            cStat: jaExiste.cstat,
-                                            xMotivo: jaExiste.xmotivo,
-                                        },
-                                        '@versao': '4.00'
+                            retEnviNFe: {
+                                tpAmb: empresa.ConfiguracaoNFe.tpAmb,
+                                verAplic: "",
+                                cStat: '104',
+                                xMotivo: 'Lote processado',
+                                cUF: empresa.cmun?.toString().substring(0, 2) || '43',
+                                dhRecbto: jaExiste.data_evento,
+                                protNFe: {
+                                    infProt: {
+                                        tpAmb: empresa.ConfiguracaoNFe.tpAmb,
+                                        verAplic: "",
+                                        chNFe: jaExiste.chave_acesso,
+                                        dhRecbto: jaExiste.data_evento,
+                                        nProt: jaExiste.protocolo,
+                                        digVal: jaExiste.digVal,
+                                        cStat: jaExiste.cstat,
+                                        xMotivo: jaExiste.xmotivo,
                                     },
-                                    '@versao': '4.00',
-                                    '@xmlns': 'http://www.portalfiscal.inf.br/nfe'
-                                }
+                                    '@versao': '4.00'
+                                },
+                                '@versao': '4.00',
+                                '@xmlns': 'http://www.portalfiscal.inf.br/nfe'
                             }
+                        }
                         resultados.push({
                             nfe_codigo: transmissao.nfe.nfe_codigo,
                             idnfe: transmissao.nfe.id,
@@ -470,7 +470,7 @@ export class SpedNfeTransmissorService {
 
                     if (listaDup.length > 0) {
                         NFe.tagDup(listaDup);
-                    }else{
+                    } else {
                         valorpag = transmissao.nfe.nfe_total_nota;
                     }
                     //NFe.tagTroco("0.00");
@@ -479,15 +479,15 @@ export class SpedNfeTransmissorService {
                     const manifestoadfisco = await this.somenteNumeros(transmissao.nfe.nfe_manifesto.substring(0, 15) || '');
                     let msgmanifeto = '';
 
-                    if(manifestoadfisco){
-                         msgmanifeto = `Referente ao manifesto n°:${manifestoadfisco}`;
-                    }else{
-                         msgmanifeto = '';
+                    if (manifestoadfisco) {
+                        msgmanifeto = `Referente ao manifesto n°:${manifestoadfisco}`;
+                    } else {
+                        msgmanifeto = '';
                     }
 
                     const adfisc = `${msgmanifeto} ${cfop.dados_ad_fisc} ${obsitemfator}`;
 
-                    if(adfisc.trim()){
+                    if (adfisc.trim()) {
                         NFe.tagInfAdic({
                             infAdFisco: `${adfisc.trim()}`,
                             //  infCpl: ''
@@ -580,7 +580,7 @@ export class SpedNfeTransmissorService {
                 } catch (error) {
                     //throw error;
                     console.log(error);
-                   // resultados.push();
+                    // resultados.push();
                     throw new HttpException({
                         nfe_codigo: transmissao.nfe.nfe_codigo,
                         idnfe: transmissao.nfe.id,
@@ -612,6 +612,147 @@ export class SpedNfeTransmissorService {
             }
         }
     }
+
+    async HandlerCancelamentoNFe(dados: CancelamentoDto, cnpj: string) {
+        try {
+            const empresa = await this.prisma.empresa.findFirst({
+                where: { cnpj },
+                include: { ConfiguracaoNFe: true },
+            });
+
+            if (!empresa) {
+                throw new HttpException(`Empresa com CNPJ ${cnpj} não encontrada`, HttpStatus.NOT_FOUND);
+            }
+
+            const xmllintPath = join(process.cwd(), 'src', 'modules', 'sped-nfe-transmissor', 'libs', 'libxml', 'bin', 'xmllint.exe');
+            const certBuffer = Buffer.isBuffer(empresa.ConfiguracaoNFe.certPfx)
+                ? empresa.ConfiguracaoNFe.certPfx
+                : Buffer.from(empresa.ConfiguracaoNFe.certPfx as any);
+            const tempPfxPath = path.join(os.tmpdir(), `cert-${empresa.cnpj}.pfx`);
+            fs.writeFileSync(tempPfxPath, certBuffer);
+
+            const eTools = new Tools({
+                mod: '55',
+                xmllint: xmllintPath,
+                UF: empresa.uf,
+                tpAmb: 2,
+                CSC: '',
+                CSCid: '',
+                versao: '4.00',
+                timeout: 60000,
+                openssl: null,
+                CPF: '',
+                CNPJ: empresa.cnpj,
+            }, {
+                pfx: tempPfxPath,
+                senha: empresa.ConfiguracaoNFe.certPassword,
+            });
+
+            const jaExiste = await this.prisma.nfe_evento.findFirst({
+                where: {
+                    numero_nfe: dados.numero_nfe,
+                    codigo_nfe: dados.codigo_nfe,
+                    cstat: '101'
+                }
+            });
+
+            if(jaExiste){
+                return {
+                    sucesso: true,
+                    cStat:jaExiste.cstat,
+                    xMotivo:jaExiste.xmotivo,
+                    procEvento: '',
+                    ideventos: jaExiste.id,
+                    evento: {
+                        id: jaExiste.id,
+                        id_evento: jaExiste.id,
+                        chave_acesso: jaExiste.chave_acesso,
+                        cstat:  jaExiste.cstat,
+                        protocolo: jaExiste.protocolo,
+                        caminho_xml: "",
+                        data_evento: jaExiste.data_evento ? new Date(jaExiste.data_evento).getTime() : undefined,
+                        xMotivo: jaExiste.xmotivo ?? ''
+                    }
+                };
+            }
+
+
+            // 👉 Faz envio do evento e captura XML assinado + resposta da SEFAZ
+            const xmlRespostaEvento = await eTools.sefazEvento({
+                chNFe: dados.chNFe,
+                tpEvento: '110111',
+                nProt: dados.nProt,
+                xJust: dados.justificativa
+            });
+
+            const retornoObj = await xml2json(xmlRespostaEvento);
+            const cStat = (retornoObj as any)?.retEnvEvento?.retEvento?.infEvento?.cStat;
+
+            if (cStat === '135') {
+                // ✅ Extração do XML assinado do evento
+                const xmlEventoAssinado = eTools.ultimoEventoXml ?? ''; // ajuste se você criou uma propriedade pública
+
+                if (!xmlEventoAssinado) {
+                    throw new Error('XML do evento assinado não encontrado');
+                }
+
+                // ✅ Gera procEventoNFe
+                const xmlProcEvento = Complements.toProcEvento(xmlEventoAssinado, xmlRespostaEvento);
+
+                // 👉 Exemplo: salvar no banco
+                const idevento = await this.prisma.nfe_evento.create({
+                    data: {
+                        chave_acesso: dados.chNFe,
+                        protocolo: (retornoObj as any)?.retEnvEvento.retEvento.infEvento.nProt,
+                        data_evento: new Date((retornoObj as any)?.retEnvEvento.retEvento.infEvento.dhRegEvento),
+                        caminho_xml: xmlProcEvento,
+                        cstat: '101',
+                        xmotivo: (retornoObj as any)?.retEnvEvento.retEvento.infEvento.xMotivo,
+                        numero_nfe: dados.numero_nfe,
+                        codigo_nfe: dados.codigo_nfe,
+                        serie: dados.serie,
+                    },
+                });
+
+                const idevent = idevento.id;
+
+                return {
+                    sucesso: true,
+                    cStat:'101',
+                    xMotivo: (retornoObj as any)?.retEnvEvento.retEvento.infEvento.xMotivo,
+                    procEvento: xmlProcEvento,
+                    ideventos: idevent,
+                    evento: {
+                        id: idevent,
+                        id_evento: idevent,
+                        chave_acesso: dados.chNFe,
+                        cstat: '101',
+                        protocolo: (retornoObj as any)?.retEnvEvento.retEvento.infEvento.nProt,
+                        caminho_xml: "",
+                        data_evento: (retornoObj as any)?.retEnvEvento.retEvento.infEvento.dhRegEvento
+                            ? new Date((retornoObj as any)?.retEnvEvento.retEvento.infEvento.dhRegEvento).getTime()
+                            : undefined,
+                        xMotivo: (retornoObj as any)?.retEnvEvento.retEvento.infEvento.xMotivo
+                    }
+                };
+            } else {
+                return {
+                    sucesso: false,
+                    cStat,
+                    xMotivo: (retornoObj as any)?.retEnvEvento?.retEvento?.infEvento?.xMotivo || 'Erro desconhecido',
+                    raw: retornoObj,
+                    evento:{}
+                };
+            }
+
+        } catch (error) {
+            throw new HttpException({
+                msg: 'Ocorreu um erro durante o cancelamento',
+                erro: error?.message || error,
+            }, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
 
     async somenteNumeros(valor?: string | null): Promise<string> {
         return (valor || '').replace(/\D/g, '');

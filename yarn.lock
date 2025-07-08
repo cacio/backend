@@ -4100,7 +4100,7 @@ node-releases@^2.0.13:
 
 "node-sped-nfe-custom@git+https://github.com/cacio/sped-nfe.git":
   version "1.2.36"
-  resolved "git+https://github.com/cacio/sped-nfe.git#17c45ff788d40548fa98221f529f455712ba5558"
+  resolved "git+https://github.com/cacio/sped-nfe.git#07ae44111af457c7b732ece9978bcbdc63730bc8"
   dependencies:
     crypto "^1.0.1"
     fast-xml-parser "^4.5.1"
