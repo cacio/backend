@@ -342,3 +342,37 @@ export class CancelamentoDto{
   @IsString()
   codigo_nfe:string;
 }
+
+export class CartaCorrecaoDto{
+  @IsString()
+  chNFe:string
+
+  @IsString()
+  nProt:string;
+
+  @IsString()
+  justificativa:string;
+
+  @IsString()
+  serie: string;
+
+  @IsString()
+  numero_nfe:string;
+
+  @IsString()
+  codigo_nfe:string;
+}
+
+export class InutilizaDto{
+  @IsString()
+  justificativa:string;
+
+  @IsString()
+  serie: string;
+
+  @IsString()
+  numero_nfe:string;
+
+  @IsString()
+  codigo_nfe:string;
+}

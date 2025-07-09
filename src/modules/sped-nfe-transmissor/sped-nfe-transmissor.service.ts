@@ -1,11 +1,11 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { PrismaService } from 'src/datrabase/PrismaService';
-import { Make, Tools, xml2json, Complements } from 'node-sped-nfe-custom';
+import { Make, Tools, xml2json, Complements, UF2cUF } from 'node-sped-nfe-custom';
 import { join } from 'path'
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { TransmissaoNfeDto, CancelamentoDto } from './DTO/transmissao-nfe.dto';
+import { TransmissaoNfeDto, CancelamentoDto, CartaCorrecaoDto, InutilizaDto } from './DTO/transmissao-nfe.dto';
 import { format } from 'date-fns-tz';
 import { limparCamposZero } from '../../utils/limpar-campos-zero';
 @Injectable()
@@ -656,18 +656,18 @@ export class SpedNfeTransmissorService {
                 }
             });
 
-            if(jaExiste){
+            if (jaExiste) {
                 return {
                     sucesso: true,
-                    cStat:jaExiste.cstat,
-                    xMotivo:jaExiste.xmotivo,
+                    cStat: jaExiste.cstat,
+                    xMotivo: jaExiste.xmotivo,
                     procEvento: '',
                     ideventos: jaExiste.id,
                     evento: {
                         id: jaExiste.id,
                         id_evento: jaExiste.id,
                         chave_acesso: jaExiste.chave_acesso,
-                        cstat:  jaExiste.cstat,
+                        cstat: jaExiste.cstat,
                         protocolo: jaExiste.protocolo,
                         caminho_xml: "",
                         data_evento: jaExiste.data_evento ? new Date(jaExiste.data_evento).getTime() : undefined,
@@ -718,7 +718,7 @@ export class SpedNfeTransmissorService {
 
                 return {
                     sucesso: true,
-                    cStat:'101',
+                    cStat: '101',
                     xMotivo: (retornoObj as any)?.retEnvEvento.retEvento.infEvento.xMotivo,
                     procEvento: xmlProcEvento,
                     ideventos: idevent,
@@ -741,7 +741,7 @@ export class SpedNfeTransmissorService {
                     cStat,
                     xMotivo: (retornoObj as any)?.retEnvEvento?.retEvento?.infEvento?.xMotivo || 'Erro desconhecido',
                     raw: retornoObj,
-                    evento:{}
+                    evento: {}
                 };
             }
 
@@ -753,6 +753,289 @@ export class SpedNfeTransmissorService {
         }
     }
 
+    async HandlerCartaCorrecao(dados: CartaCorrecaoDto, cnpj: string) {
+        try {
+            const empresa = await this.prisma.empresa.findFirst({
+                where: { cnpj },
+                include: { ConfiguracaoNFe: true },
+            });
+
+            if (!empresa) {
+                throw new HttpException(`Empresa com CNPJ ${cnpj} não encontrada`, HttpStatus.NOT_FOUND);
+            }
+
+            const xmllintPath = join(process.cwd(), 'src', 'modules', 'sped-nfe-transmissor', 'libs', 'libxml', 'bin', 'xmllint.exe');
+            const certBuffer = Buffer.isBuffer(empresa.ConfiguracaoNFe.certPfx)
+                ? empresa.ConfiguracaoNFe.certPfx
+                : Buffer.from(empresa.ConfiguracaoNFe.certPfx as any);
+            const tempPfxPath = path.join(os.tmpdir(), `cert-${empresa.cnpj}.pfx`);
+            fs.writeFileSync(tempPfxPath, certBuffer);
+
+            const eTools = new Tools({
+                mod: '55',
+                xmllint: xmllintPath,
+                UF: empresa.uf,
+                tpAmb: 2,
+                CSC: '',
+                CSCid: '',
+                versao: '4.00',
+                timeout: 60000,
+                openssl: null,
+                CPF: '',
+                CNPJ: empresa.cnpj,
+            }, {
+                pfx: tempPfxPath,
+                senha: empresa.ConfiguracaoNFe.certPassword,
+            });
+
+            const jaExiste = await this.prisma.nfe_evento.findFirst({
+                where: {
+                    numero_nfe: dados.numero_nfe,
+                    codigo_nfe: dados.codigo_nfe,
+                    cstat: '135'
+                }
+            });
+
+            if (jaExiste) {
+                return {
+                    sucesso: true,
+                    cStat: jaExiste.cstat,
+                    xMotivo: jaExiste.xmotivo,
+                    procEvento: '',
+                    ideventos: jaExiste.id,
+                    evento: {
+                        id: jaExiste.id,
+                        id_evento: jaExiste.id,
+                        chave_acesso: jaExiste.chave_acesso,
+                        cstat: jaExiste.cstat,
+                        protocolo: jaExiste.protocolo,
+                        caminho_xml: "",
+                        data_evento: jaExiste.data_evento ? new Date(jaExiste.data_evento).getTime() : undefined,
+                        xMotivo: jaExiste.xmotivo ?? ''
+                    }
+                };
+            }
+
+
+            // 👉 Faz envio do evento e captura XML assinado + resposta da SEFAZ
+            const xmlRespostaEvento = await eTools.sefazEvento({
+                chNFe: dados.chNFe,
+                tpEvento: '110110',
+                xJust: dados.justificativa
+            });
+
+            const retornoObj = await xml2json(xmlRespostaEvento);
+            const cStat = (retornoObj as any)?.retEnvEvento?.retEvento?.infEvento?.cStat;
+
+            if (cStat === '135') {
+                // Extração do XML assinado do evento
+                const xmlEventoAssinado = eTools.ultimoEventoXml ?? ''; // ajuste se você criou uma propriedade pública
+
+                if (!xmlEventoAssinado) {
+                    throw new Error('XML do evento assinado não encontrado');
+                }
+
+                // Gera procEventoNFe
+                const xmlProcEvento = Complements.toProcEvento(xmlEventoAssinado, xmlRespostaEvento);
+
+                // salvar no banco
+                const idevento = await this.prisma.nfe_evento.create({
+                    data: {
+                        chave_acesso: dados.chNFe,
+                        protocolo: (retornoObj as any)?.retEnvEvento.retEvento.infEvento.nProt,
+                        data_evento: new Date((retornoObj as any)?.retEnvEvento.retEvento.infEvento.dhRegEvento),
+                        caminho_xml: xmlProcEvento,
+                        cstat: (retornoObj as any)?.retEnvEvento?.retEvento?.infEvento?.cStat,
+                        xmotivo: (retornoObj as any)?.retEnvEvento.retEvento.infEvento.xMotivo,
+                        numero_nfe: dados.numero_nfe,
+                        codigo_nfe: dados.codigo_nfe,
+                        serie: dados.serie,
+                    },
+                });
+
+                const idevent = idevento.id;
+
+                return {
+                    sucesso: true,
+                    cStat: (retornoObj as any)?.retEnvEvento?.retEvento?.infEvento?.cStat,
+                    xMotivo: (retornoObj as any)?.retEnvEvento.retEvento.infEvento.xMotivo,
+                    procEvento: xmlProcEvento,
+                    ideventos: idevent,
+                    evento: {
+                        id: idevent,
+                        id_evento: idevent,
+                        chave_acesso: dados.chNFe,
+                        cstat: (retornoObj as any)?.retEnvEvento?.retEvento?.infEvento?.cStat,
+                        protocolo: (retornoObj as any)?.retEnvEvento.retEvento.infEvento.nProt,
+                        caminho_xml: "",
+                        data_evento: (retornoObj as any)?.retEnvEvento.retEvento.infEvento.dhRegEvento
+                            ? new Date((retornoObj as any)?.retEnvEvento.retEvento.infEvento.dhRegEvento).getTime()
+                            : undefined,
+                        xMotivo: (retornoObj as any)?.retEnvEvento.retEvento.infEvento.xMotivo
+                    }
+                };
+            } else {
+                return {
+                    sucesso: false,
+                    cStat,
+                    xMotivo: (retornoObj as any)?.retEnvEvento?.retEvento?.infEvento?.xMotivo || 'Erro desconhecido',
+                    raw: retornoObj,
+                    evento: {}
+                };
+            }
+
+        } catch (error) {
+            throw new HttpException({
+                msg: 'Ocorreu um erro durante a carta de correção',
+                erro: error?.message || error,
+            }, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    async HandlerInutilizaNFe(dados: InutilizaDto, cnpj: string) {
+        try {
+            const empresa = await this.prisma.empresa.findFirst({
+                where: { cnpj },
+                include: { ConfiguracaoNFe: true },
+            });
+
+            if (!empresa) {
+                throw new HttpException(`Empresa com CNPJ ${cnpj} não encontrada`, HttpStatus.NOT_FOUND);
+            }
+
+            const xmllintPath = join(process.cwd(), 'src', 'modules', 'sped-nfe-transmissor', 'libs', 'libxml', 'bin', 'xmllint.exe');
+            const certBuffer = Buffer.isBuffer(empresa.ConfiguracaoNFe.certPfx)
+                ? empresa.ConfiguracaoNFe.certPfx
+                : Buffer.from(empresa.ConfiguracaoNFe.certPfx as any);
+
+            const tempPfxPath = path.join(os.tmpdir(), `cert-${empresa.cnpj}.pfx`);
+            fs.writeFileSync(tempPfxPath, certBuffer);
+
+            const eTools = new Tools({
+                mod: '55',
+                xmllint: xmllintPath,
+                UF: empresa.uf,
+                tpAmb: 2,
+                CSC: '',
+                CSCid: '',
+                versao: '4.00',
+                timeout: 60000,
+                openssl: null,
+                CPF: '',
+                CNPJ: empresa.cnpj,
+            }, {
+                pfx: tempPfxPath,
+                senha: empresa.ConfiguracaoNFe.certPassword,
+            });
+
+            // 👉 Verifica se já foi inutilizado antes (caso sua lógica inclua isso)
+            const jaExiste = await this.prisma.nfe_evento.findFirst({
+                where: {
+                    numero_nfe: dados.numero_nfe,
+                    codigo_nfe: dados.codigo_nfe,
+                    cstat: '102' // pode ser 135 também, dependendo de como você salva
+                }
+            });
+
+            if (jaExiste) {
+                return {
+                    sucesso: true,
+                    cStat: jaExiste.cstat,
+                    xMotivo: jaExiste.xmotivo,
+                    evento: {
+                        id: jaExiste.id,
+                        chave_acesso: jaExiste.chave_acesso,
+                        cstat: jaExiste.cstat,
+                        protocolo: jaExiste.protocolo,
+                        data_evento: jaExiste.data_evento ? new Date(jaExiste.data_evento).getTime() : undefined,
+                        xMotivo: jaExiste.xmotivo ?? ''
+                    }
+                };
+            }
+
+            // 📨 ENVIO para SEFAZ
+            const xmlResposta = await eTools.sefazInutiliza({
+                cUF: await UF2cUF[empresa.uf],
+                ano: new Date().getFullYear().toString().slice(-2),
+                CNPJ: empresa.cnpj,
+                modelo: "55",
+                serie: Number(dados.serie),
+                nIni: Number(dados.codigo_nfe),
+                nFin: Number(dados.codigo_nfe),
+                xJust: dados.justificativa,
+                tpAmb: empresa.ConfiguracaoNFe.tpAmb,
+                versao: '4.00'
+            });
+
+            // 🧠 CONVERTE resposta XML em JSON
+            const retornoObj = await xml2json(xmlResposta);
+            const infInut = (retornoObj as any)?.retInutNFe?.infInut;
+            const cStat = infInut?.cStat;
+            const xMotivo = infInut?.xMotivo;
+            const protocolo = infInut?.nProt;
+            const dhRecbto = infInut?.dhRecbto;
+
+            if (cStat === '102') {
+                // Sucesso na inutilização
+                const evento = await this.prisma.nfe_evento.create({
+                    data: {
+                        chave_acesso: '', // inutilização não tem chave de acesso
+                        protocolo,
+                        data_evento: new Date(dhRecbto),
+                        caminho_xml: xmlResposta,
+                        cstat:cStat,
+                        xmotivo: xMotivo,
+                        numero_nfe: dados.numero_nfe,
+                        codigo_nfe: dados.codigo_nfe,
+                        serie: dados.serie,
+                    }
+                });
+
+                return {
+                    sucesso: true,
+                    cStat,
+                    xMotivo,
+                    procEvento: xmlResposta,
+                    ideventos: evento.id,
+                    evento: {
+                        id: evento.id,
+                        chave_acesso: '',
+                        cstat:cStat,
+                        protocolo,
+                        data_evento: new Date(dhRecbto).getTime(),
+                        xMotivo
+                    }
+                };
+
+            } else if (cStat === '563') {
+                // Rejeição: Já existe pedido
+                return {
+                    sucesso: false,
+                    cStat,
+                    xMotivo: "Já existe pedido de inutilização com a mesma faixa.",
+                    status: 'ja_inutilizado',
+                    raw: retornoObj
+                };
+
+            } else {
+                // Outro erro qualquer
+                return {
+                    sucesso: false,
+                    cStat,
+                    xMotivo: xMotivo || 'Erro desconhecido',
+                    status: 'erro',
+                    raw: retornoObj
+                };
+            }
+
+        } catch (error) {
+            console.error('[Erro InutilizaNFe]', error);
+            throw new HttpException({
+                msg: 'Ocorreu um erro durante a inutilização',
+                erro: error?.message || error,
+            }, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 
     async somenteNumeros(valor?: string | null): Promise<string> {
         return (valor || '').replace(/\D/g, '');
