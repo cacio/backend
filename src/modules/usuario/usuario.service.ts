@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { UsuarioDTO } from './usuario.dto';
+import { UsuarioDTO, UsuarioUpdateDTO } from './usuario.dto';
 import { PrismaService } from 'src/datrabase/PrismaService';
 import { hashPassword } from '../auth/utils/bcrypt.utils';
 
@@ -67,6 +67,13 @@ export class UsuarioService {
                     include: {
                         empresa: true
                     }
+                },
+                configuracao:{
+                    where:{
+                        empresa:{
+                            cnpj:cnpj
+                        }
+                    }
                 }
             }
         });
@@ -85,5 +92,25 @@ export class UsuarioService {
                 }
             }
         })
+    }
+
+    async updateUser(id: string, data: UsuarioUpdateDTO,cnpj: string) {
+
+        const passwd = data.passwd ? await hashPassword(data.passwd) : '';
+       // console.log('Senha: ',data);
+        const user = await this.prisma.usuario.update({
+            where: {
+                id
+            },
+            data:{
+                nome: data.nome,
+                login: data.login,
+                email: data.email,
+                ...(data.passwd ? { passwd: passwd } : {}),
+                codrepre: data.codrepre
+            }
+        });
+       // console.log(user);
+        return user;
     }
 }

@@ -26,3 +26,16 @@ export class UsuarioDTO {
     user_ativo:usuario_user_ativo;
 
 };
+
+export class UsuarioUpdateDTO {
+  @IsNotEmpty({ message: 'Email não pode ser vazio' })
+  email: string;
+  @IsString()
+  passwd?: string;
+  @IsString({ message: 'Interior must be a valid string' })
+  nome: string;
+  @IsNotEmpty()
+  login: string;
+  @IsNotEmpty()
+  codrepre: string;
+}
