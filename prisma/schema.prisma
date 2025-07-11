@@ -244,7 +244,8 @@ model nfe_evento {
 }
 
 model nfe_produtos {
-  codigo            String       @id @default(uuid()) @db.VarChar(36)
+  id                String       @id @default(uuid()) @db.VarChar(36)
+  codigo            String?
   nfe_codigo        Int
   nfe_id            String
   produtos_codigo   String?
