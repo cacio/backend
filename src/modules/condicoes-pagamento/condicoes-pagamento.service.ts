@@ -22,7 +22,7 @@ export class CondicoesPagamentoService {
             where: { id },
         });
     }
-    async create(data: CondicoesPagamentoDto,cnpj: string) {
+    async create(data: CondicoesPagamentoDto, cnpj: string) {
         const empresa = await this.prisma.empresa.findFirst({
             where: { cnpj },
         });
@@ -61,18 +61,57 @@ export class CondicoesPagamentoService {
     }
 
     async createLote(data: CondicoesPagamentoDto[], cnpj: string) {
-        const empresa = await this.prisma.empresa.findFirst({
-            where: { cnpj },
-        });
+        try {
+            const empresa = await this.prisma.empresa.findFirst({
+                where: { cnpj },
+            });
 
-        return this.prisma.condicoes_pagamento.createMany({
-            data: data.map(item => ({
-                ...item,
-                created_at: new Date(),
-                updated_at: new Date(),
-                idemp: empresa.id,
-            })),
-        });
+            if (!empresa) {
+                throw new Error(`Empresa com CNPJ ${cnpj} não encontrada`);
+            }
+
+            const condicaoExist = await this.prisma.condicoes_pagamento.findMany({
+                where: {
+                    idemp: empresa.id
+                }
+            })
+
+            const mapaCondicao = new Map(condicaoExist.map(p => [p.codigo, p]));
+
+            const promessas = data.map(item => {
+                const items = this.normalizarKeys(item);
+                const codigo = items['codigo'];
+                const existente = mapaCondicao.get(codigo);
+
+                const dataCondicao = {
+                    codigo: items['codigo'],
+                    descricao: items['descricao'],
+                }
+
+                if (existente) {
+                    return this.prisma.condicoes_pagamento.update({
+                        where: {
+                            id: existente.id
+                        },
+                        data: dataCondicao
+                    })
+                } else {
+                    return this.prisma.condicoes_pagamento.create({
+                        data: {
+                            ...dataCondicao,
+                            idemp: empresa.id,
+                        }
+                    })
+                }
+            });
+
+            await Promise.all(promessas);
+
+            return { mensage: "dados gravados com sucesso!" };
+        } catch (error) {
+            console.log(error);
+            return { mensage: error.message };
+        }
     }
 
     async ListaCondicoesPagamentoCriado(lastPulledVersion: Date, cnpj: string) {
@@ -105,5 +144,13 @@ export class CondicoesPagamentoService {
                 idemp: empresa.id,
             },
         });
+    }
+
+    private normalizarKeys(obj: Record<string, any>) {
+        const novoObj: Record<string, any> = {};
+        for (const key in obj) {
+            novoObj[key.toLowerCase()] = obj[key];
+        }
+        return novoObj;
     }
 }

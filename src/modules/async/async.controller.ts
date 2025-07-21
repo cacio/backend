@@ -19,12 +19,12 @@ export class AsyncController {
     console.log('🟡 Recebendo dados de sincronização...');
     console.log(body);
 
-    if (!body.nfe.created.length && !body.nfe.updated.length && !body.nfe.deleted.length) {
-      throw new HttpException(
-        'É necessário ao menos uma nota fiscal na sincronização.',
-        HttpStatus.BAD_REQUEST,
-      );
-    }
+    // if (!body.nfe.created.length && !body.nfe.updated.length && !body.nfe.deleted.length) {
+    //   throw new HttpException(
+    //     'É necessário ao menos uma nota fiscal na sincronização.',
+    //     HttpStatus.BAD_REQUEST,
+    //   );
+    // }
     await this.asyncService.AsyncPush(body);
 
   }

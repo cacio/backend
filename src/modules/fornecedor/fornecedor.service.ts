@@ -51,49 +51,74 @@ export class FornecedorService {
     async createLote(fornecedores: CreateFornecedorDto[], cnpj: string) {
         const results = [];
 
-        for (const fornecedor of fornecedores) {
-            try {
-                const getEmpresa = await this.prisma.empresa.findFirst({
-                    where: {
-                        cnpj
-                    }
-                });
+        try {
+            const getEmpresa = await this.prisma.empresa.findFirst({
+                where: { cnpj },
+            });
 
-                if (!getEmpresa) {
-                    throw new Error(`Empresa com CNPJ ${cnpj} não encontrada`);
-                }
-
-                const fornecedorExists = await this.prisma.fornecedor.findFirst({
-                    where: {
-                        cnpj: fornecedor.cnpj,
-                        OR: [
-                            {
-                                cpf: fornecedor.cpf
-                            }
-                        ],
-                        AND: [{
-                            idemp: getEmpresa.id
-                        }]
-                    }
-                });
-
-                if (fornecedorExists) {
-                    throw new Error(`Fornecedor com CNPJ ${fornecedor.cnpj} ou CPF ${fornecedor.cpf} já existe para a empresa com ID ${getEmpresa.id}`);
-                }
-
-                const data = { ...fornecedor, idemp: getEmpresa.id };
-                const createdFornecedor = await this.prisma.fornecedor.create({
-                    data
-                });
-                results.push({ success: true, fornecedor: createdFornecedor });
-
-            } catch (error) {
-                results.push({ success: false, error: error.message, fornecedor });
+            if (!getEmpresa) {
+                throw new Error(`Empresa com CNPJ ${cnpj} não encontrada`);
             }
-        }
 
-        return results;
+            for (const item of fornecedores) {
+                const fornecedor = this.normalizarKeys(item); // converte chaves para lowercase
+
+                try {
+                    const fornecedorExistente = await this.prisma.fornecedor.findFirst({
+                        where: {
+                            cnpj: fornecedor.cnpj,
+                            OR: [
+                                {
+                                    cpf: fornecedor.cpf
+                                }
+                            ],
+                            AND: [{
+                                idemp: getEmpresa.id
+                            }]
+                        }
+                    });
+
+                    const data = {
+                        ...fornecedor,
+                        idemp: getEmpresa.id,
+                    };
+
+                    if (fornecedorExistente) {
+                        // Atualiza fornecedor existente
+                        // console.log('existe');
+                        // console.log(data);
+                        const updated = await this.prisma.fornecedor.update({
+                            where: { codigo: fornecedorExistente.codigo },
+                            data,
+                        });
+                        results.push({ success: true, fornecedor: updated, updated: true });
+                    } else {
+                        // Cria novo fornecedor
+                        const created = await this.prisma.fornecedor.create({ data });
+                        results.push({ success: true, fornecedor: created, created: true });
+                    }
+                } catch (error) {
+                    console.error(error);
+                    results.push({ success: false, error: error.message, fornecedor });
+                }
+            }
+
+            return results;
+        } catch (error) {
+            console.error(error);
+            return [{ success: false, error: error.message }];
+        }
     }
+
+
+    private normalizarKeys(obj: Record<string, any>) {
+        const novoObj: Record<string, any> = {};
+        for (const key in obj) {
+            novoObj[key.toLowerCase()] = obj[key];
+        }
+        return novoObj;
+    }
+
 
     async update(id: string, cnpj: string, fornecedor: UpdateFornecedorDto) {
 

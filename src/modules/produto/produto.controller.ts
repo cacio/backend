@@ -10,6 +10,12 @@ export class ProdutoController {
   async create(@Body() data: CreateProdutoDto, @Param('cnpj') cnpj: string){
     return this.produtoService.create(data, cnpj);
   }
+
+  @Post('sync/:cnpj')
+  async createLote(@Body() data: any[], @Param('cnpj') cnpj: string){
+    return this.produtoService.CreateLote(data, cnpj);
+  }
+
   @Post('update/:cnpj/:id')
   async update(@Param('id') id: string, @Body() data: UpdateProdutoDto, @Param('cnpj') cnpj: string){
     return this.produtoService.update(id, cnpj, data);

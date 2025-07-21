@@ -171,7 +171,7 @@ export class SpedNfeTransmissorService {
 
                     const enderecoEmitente = Object.entries({
                         xLgr: empresa.xlgr,
-                        nro: empresa.nro,
+                        nro: String(empresa.nro).trim(),
                         xBairro: empresa.xbairro,
                         cMun: empresa.cmun,
                         xMun: empresa.xmun,
@@ -198,18 +198,20 @@ export class SpedNfeTransmissorService {
                     //console.log(clienteDest);
 
                     NFe.tagDest({
-                        //CPF: clienteDest.cpf,
-                        CNPJ: clienteDest.cnpj,
+                        ...(clienteDest.cpf
+                            ? { CPF: clienteDest.cpf }
+                            : { CNPJ: clienteDest.cnpj }),
                         xNome: `(${clienteDest.cod_retaquarda}) ${clienteDest.xnome}`,
                         indIEDest: clienteDest.ie ? 1 : 2,
                         IE: clienteDest.ie,
-                        //ISUF: clienteDest.isuf,
-                        email: clienteDest.email
+
+                        ...(clienteDest.email && { email: clienteDest.email })
                     });
+
 
                     NFe.tagEnderDest({
                         xLgr: clienteDest.xlgr,
-                        nro: clienteDest.nro,
+                        nro: String(clienteDest.nro).trim(),
                         xBairro: clienteDest.xbairro,
                         cMun: clienteDest.cmun,
                         xMun: clienteDest.xmun,
@@ -246,7 +248,7 @@ export class SpedNfeTransmissorService {
                             //console.log(dadosmanifesto,' - ',transmissao.nfe.nfe_manifesto,' - ',dadosproduto.cprod);
                             const numeromanifesto = await this.somenteNumeros(transmissao.nfe.nfe_manifesto.substring(0, 15) || '');
                             return limparCamposZero({
-                                cProd: p.produtos_codigo,
+                                cProd: dadosproduto.cprod,
                                 cEAN: dadosproduto?.cean == '0' || dadosproduto?.cean == '' ? 'SEM GTIN' : dadosproduto?.cean,
                                 xProd: dadosproduto?.xprod ?? '',
                                 NCM: String(dadosproduto?.ncm ?? '').padStart(8, "0"),
@@ -257,7 +259,7 @@ export class SpedNfeTransmissorService {
                                 qCom: p.nfe_quantidade,
                                 vUnCom: p.nfe_valorunitario,
                                 vProd: p.nfe_subtotal,
-                                cEANTrib: dadosproduto?.ceantrib ?? 'SEM GTIN',
+                                cEANTrib: String(dadosproduto?.ceantrib).trim() ?? 'SEM GTIN',
                                 uTrib: dadosproduto?.unMedida ?? 'UN',
                                 qTrib: p.nfe_quantidade,
                                 vUnTrib: p.nfe_valorunitario,
@@ -278,7 +280,7 @@ export class SpedNfeTransmissorService {
 
                     for (let index = 0; index < produtos.length; index++) {
                         const p = produtos[index];
-                        //console.log(p);
+                        console.log(p);
                         const dadosproduto = await this.prisma.produtos.findUnique({
                             where: {
                                 codigo: p.produtos_codigo,
@@ -357,7 +359,7 @@ export class SpedNfeTransmissorService {
                                 vICMSSubstituto: 0.01,
                             });
 
-                            console.log(String(CSTIPI).padStart(2, "0"));
+                            //console.log(String(CSTIPI).padStart(2, "0"));
                             NFe.tagProdIPI(index, {
                                 //clEnq: '',
                                 //CNPJProd: '',
@@ -375,7 +377,7 @@ export class SpedNfeTransmissorService {
                             //NFe.tagProdICMSSN(index+1, { orig: "0", CSOSN: "400" });
 
                             NFe.tagProdPIS(index, {
-                                CST: String(CSTPISCOFINS).padStart(2, "0"),
+                                CST: String(CSTPISCOFINS).padStart(2, "0").trim(),
                                 vBC: p.nfe_vbcpis,
                                 pPIS: AliquotaPis,
                                 //qBCProd: 0,
@@ -393,7 +395,14 @@ export class SpedNfeTransmissorService {
 
                             });
 
-                            console.log(String(CSTPISCOFINS).padStart(2, "0"));
+                            console.log("CST PIS: ", {
+                                CST: String(CSTPISCOFINS).padStart(2, "0").trim(),
+                                vBC: p.nfe_vbcpis,
+                                pPIS: AliquotaPis,
+                                //qBCProd: 0,
+                                vAliqProd: 0,
+                                vPIS: p.nfe_vpis,
+                            });
 
                             NFe.taginfAdProd(index, {
                                 infAdProd: `PC:${p.nfe_pecas}`
@@ -404,7 +413,7 @@ export class SpedNfeTransmissorService {
                             } else {
                                 console.error('Error during push operation:', error);
                                 throw new HttpException(
-                                    'Ocorreu um erro durante a trasmição',
+                                    'Ocorreu um erro durante a trasmição => ' + error,
                                     HttpStatus.INTERNAL_SERVER_ERROR,
                                 );
                             }
@@ -475,7 +484,7 @@ export class SpedNfeTransmissorService {
                     }
                     //NFe.tagTroco("0.00");
 
-                    NFe.tagDetPag([{ tPag: tpag, vPag: valorpag }]);
+                    NFe.tagDetPag([{ tPag: tpag, vPag: valorpag.toFixed(2) }]);
                     const manifestoadfisco = await this.somenteNumeros(transmissao.nfe.nfe_manifesto.substring(0, 15) || '');
                     let msgmanifeto = '';
 
@@ -602,7 +611,7 @@ export class SpedNfeTransmissorService {
 
                 const resp = {
                     msg: 'Ocorreu um erro durante a trasmição',
-                    erro: error
+                    erro: error?.message ?? error
                 }
                 console.error('Error during push operation:', error);
                 throw new HttpException(
@@ -983,7 +992,7 @@ export class SpedNfeTransmissorService {
                         protocolo,
                         data_evento: new Date(dhRecbto),
                         caminho_xml: xmlResposta,
-                        cstat:cStat,
+                        cstat: cStat,
                         xmotivo: xMotivo,
                         numero_nfe: dados.numero_nfe,
                         codigo_nfe: dados.codigo_nfe,
@@ -1000,7 +1009,7 @@ export class SpedNfeTransmissorService {
                     evento: {
                         id: evento.id,
                         chave_acesso: '',
-                        cstat:cStat,
+                        cstat: cStat,
                         protocolo,
                         data_evento: new Date(dhRecbto).getTime(),
                         xMotivo

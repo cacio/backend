@@ -21,6 +21,12 @@ export class CfopController {
   async create(@Param('cnpj') cnpj: string,@Body() data: CfopDto) {
     return this.cfopService.create(cnpj, data);
   }
+
+  @Post('sync/:cnpj')
+  async createlote(@Body() data: any[],@Param('cnpj') cnpj: string) {
+    return this.cfopService.createLote(data, cnpj);
+  }
+
   // Endpoint to update an existing CFOP by ID
   @Post('update/:id')
   async update(@Param('id') id: string,@Body() data: CfopDto) {

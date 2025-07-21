@@ -15,6 +15,7 @@ import {
     NfeProdutoDto,
     removeFields,
     stripSyncFields,
+    UserDto,
 } from './DTO/async-push.dto';
 
 @Injectable()
@@ -136,6 +137,7 @@ export class AsyncService {
                 await this.processChanges(tx.nfe_produtos, data.nfe_produtos, 'id', this.fixTypesNfeProduto);
                 await this.processChanges(tx.nfe_evento, data.nfe_evento, 'id', this.fixTypesNfeEvento);
                 await this.processChanges(tx.tab_duplicata, data.duplicatas, 'id', this.fixTypesDuplicata);
+                 await this.processChanges(tx.usuario, data.usuario, 'id', this.fixTypesUser);
             });
 
             throw new HttpException(
@@ -261,16 +263,6 @@ export class AsyncService {
     ): Promise<any> => {
         const clean = removeFields(item, ['id_evento', 'id_nfe', 'idemp']); // ou id_evento se for esse o nome
 
-        // if (item.id_nfe) {
-        //     const exists = await this.prisma.nfe.findUnique({
-        //         where: { id: item.id_nfe },
-        //     });
-
-        //     if (!exists) {
-        //         throw new Error(`NF-e com id ${item.id_nfe} não encontrada`);
-        //     }
-        // }
-
         const formatted = {
             ...clean,
             nfe: {
@@ -293,6 +285,13 @@ export class AsyncService {
             data_vencimento: item.data_vencimento ? moment(item.data_vencimento).format('YYYY-MM-DD[T]HH:mm:ss.SSS[Z]') : undefined,
             valor_duplicata: item.valor_duplicata ? Number(item.valor_duplicata) : undefined,
             valor_nota: item.valor_nota ? Number(item.valor_nota) : undefined,
+        };
+    }
+
+    fixTypesUser= async (item: Omit<UserDto, '_status' | '_changed'>): Promise<any> => {
+        const clean = removeFields(item, ['user_id', 'idemp','token','passwd']);
+        return {
+            ...clean,
         };
     }
 }
