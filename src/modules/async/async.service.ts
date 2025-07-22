@@ -221,9 +221,9 @@ export class AsyncService {
     };
 
     fixTypesNfeProduto = async (item: Omit<NfeProdutoDto, '_status' | '_changed'>): Promise<any> => {
-
+        const clean = removeFields(item, ['created_at']);
         const formatted = {
-            ...item,
+            ...clean,
             codigo: String(item.codigo),
             nfe_codigo: Number(item.nfe_codigo),
             nfe_subtotal: item.nfe_subtotal ? Number(item.nfe_subtotal) : undefined,
