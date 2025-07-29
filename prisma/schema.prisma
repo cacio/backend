@@ -29,6 +29,8 @@ model UsuarioConfiguracao {
   cfop               String? @db.VarChar(10)
   numeroviaempressao Int?
   codproxnfe         String? @db.VarChar(10)
+  percpesoproduto    Float?  @db.Float
+  percprecoproduto   Float?  @db.Float
   idemp              String?
 
   usuario usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade, map: "usuario_configuracao")
@@ -321,6 +323,8 @@ model produtos {
   valor_unitario      Float          @db.Float
   fatorbcicmsret      Float?         @db.Float
   fatorvlricmsret     Float?         @db.Float
+  mediapeso           Decimal?       @db.Decimal(15,6)
+  mediaprecounitario  Decimal?       @db.Decimal(15,6)
   CENQ                String?        @db.VarChar(45)
   CBENEF              String?        @db.VarChar(60)
   idemp               String?

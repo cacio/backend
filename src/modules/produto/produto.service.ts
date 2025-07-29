@@ -92,6 +92,8 @@ export class ProdutoService {
                     valor_unitario: produto["PRECO_VENDA"],
                     fatorbcicmsret: produto["FATORBCICMSRET"],
                     fatorvlricmsret: produto["FATORVLRICMSRET"],
+                    mediapeso: produto["MEDIAPESO"] ? produto["MEDIAPESO"] : 0,
+                    mediaprecounitario: produto["MEDIAPRECOUNITARIO"] ? produto["MEDIAPRECOUNITARIO"] : 0,
                     CENQ: produto["CENQ"],
                     CBENEF: produto["CBENEF"],
                 };
@@ -209,7 +211,9 @@ export class ProdutoService {
 
         return dataproduct.map(prod => ({
             ...prod,
-            id: prod.codigo
+            id: prod.codigo,
+            mediapeso:Number(prod.mediapeso) || 0,
+            mediaprecounitario:Number(prod.mediaprecounitario) || 0
         }));
     }
     async ListaProdutoAlterado(lastPulledVersion: Date, cnpj: string) {
@@ -232,7 +236,9 @@ export class ProdutoService {
 
         return dataproduct.map(prod => ({
             ...prod,
-            id: prod.codigo
+            id: prod.codigo,
+            mediapeso:Number(prod.mediapeso) || 0,
+            mediaprecounitario:Number(prod.mediaprecounitario) || 0
         }));
     }
     async findAll(cnpj) {

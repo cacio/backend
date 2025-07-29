@@ -115,6 +115,8 @@ export class AsyncService {
 
             if (exists) {
                 await model.update({ where, data });
+            }else {
+                await model.create({ data });
             }
         }
 
@@ -137,7 +139,7 @@ export class AsyncService {
                 await this.processChanges(tx.nfe_produtos, data.nfe_produtos, 'id', this.fixTypesNfeProduto);
                 await this.processChanges(tx.nfe_evento, data.nfe_evento, 'id', this.fixTypesNfeEvento);
                 await this.processChanges(tx.tab_duplicata, data.duplicatas, 'id', this.fixTypesDuplicata);
-                 await this.processChanges(tx.usuario, data.usuario, 'id', this.fixTypesUser);
+                await this.processChanges(tx.usuario, data.usuario, 'id', this.fixTypesUser);
             });
 
             throw new HttpException(
@@ -221,7 +223,7 @@ export class AsyncService {
     };
 
     fixTypesNfeProduto = async (item: Omit<NfeProdutoDto, '_status' | '_changed'>): Promise<any> => {
-        const clean = removeFields(item, ['created_at']);
+        const clean = removeFields(item, ['created_at','nfe_id','produtos_codigo','nfe_cfop']);
         const formatted = {
             ...clean,
             codigo: String(item.codigo),
@@ -241,9 +243,24 @@ export class AsyncService {
             nfe_pecas: item.nfe_pecas ? Number(item.nfe_pecas) : undefined,
             nfe_quantidade: item.nfe_quantidade ? Number(item.nfe_quantidade) : undefined,
             nfe_valorunitario: item.nfe_valorunitario ? Number(item.nfe_valorunitario) : undefined,
+            nfe: {
+                connect: { id: item.nfe_id }
+            },
+            produtos:{
+                connect:{codigo:item.produtos_codigo}
+            },
+            cfop_natura: {
+                connect: {
+                    id: (
+                        await this.prisma.cfop_natura.findFirst({
+                            where: { Codigo: Number(item.nfe_cfop) }
+                        })
+                    )?.id
+                }
+            }
         };
 
-        if (item.nfe_cfop) {
+        /*if (item.nfe_cfop) {
             const cfop = await this.prisma.cfop_natura.findFirst({
                 where: { Codigo: Number(item.nfe_cfop) }
             });
@@ -253,7 +270,7 @@ export class AsyncService {
             }
 
             formatted.nfe_cfop = cfop.id;
-        }
+        }*/
 
         return formatted;
     }
@@ -261,7 +278,7 @@ export class AsyncService {
     fixTypesNfeEvento = async (
         item: Omit<NfeEventoDto, '_status' | '_changed'>,
     ): Promise<any> => {
-        const clean = removeFields(item, ['id_evento', 'id_nfe', 'idemp']); // ou id_evento se for esse o nome
+        const clean = removeFields(item, ['id_evento', 'id_nfe', 'idemp','caminho_xml']); // ou id_evento se for esse o nome
 
         const formatted = {
             ...clean,
