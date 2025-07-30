@@ -27,7 +27,7 @@ export class UsuarioService {
         if (userExists) {
             throw new Error("Usuario ja exite");
         }
-
+        console.log(users.passwd);
         const passwd = await hashPassword(users.passwd);
         const data = { ...users, passwd };
 

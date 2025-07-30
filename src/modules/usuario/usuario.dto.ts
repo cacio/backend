@@ -14,11 +14,21 @@ export class UsuarioDTO {
 
     @IsNotEmpty({ message: 'Email não pode ser vazio' })
     email:string;
+
+    @IsString()
     login:string;
+
+    @IsString()
     passwd:string;
+
+    @IsString()
     photo:string;
+
     created_at?:string;
+
     updated_at?:string;
+
+    @IsString()
     codrepre:string;
     @IsNotEmpty()
     @IsString()
