@@ -4,8 +4,7 @@
 # =====================================================================================
 FROM node:20-slim AS builder
 
-# Instala dependências do sistema operacional. apt-get é o gerenciador do Debian.
-# 'procps' é adicionado por cortesia, útil para alguns pacotes node.
+# Instala dependências do sistema operacional.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     python3 \
@@ -19,12 +18,11 @@ WORKDIR /usr/src/app
 
 COPY package*.json ./
 
-
 RUN npm install
 
 COPY . .
 
-# Gera o Prisma Client. Ele vai gerar o binário correto para Debian "native".
+# Agora, este comando vai gerar TODOS os binários que listamos no schema.prisma.
 RUN npx prisma generate
 
 RUN npm run build
@@ -38,7 +36,6 @@ FROM node:20-slim AS final
 ENV NODE_ENV=production
 
 # Instala apenas as dependências de sistema de produção.
-# O OpenSSL padrão do Debian já é compatível.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libxml2-utils \
     && rm -rf /var/lib/apt/lists/*
@@ -46,6 +43,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /usr/src/app
 
 # Copia os artefatos das fases anteriores.
+# A pasta node_modules agora contém TODOS os binários necessários.
 COPY --from=builder /usr/src/app/dist ./dist
 COPY --from=builder /usr/src/app/prisma ./prisma
 COPY --from=builder /usr/src/app/node_modules ./node_modules
