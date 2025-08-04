@@ -19,8 +19,6 @@ WORKDIR /usr/src/app
 
 COPY package*.json ./
 
-ARG GITHUB_TOKEN
-RUN npm config set -g //github.com/:_authToken ${GITHUB_TOKEN}
 
 RUN npm install
 

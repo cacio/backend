@@ -4105,9 +4105,10 @@ node-releases@^2.0.13:
   resolved "https://registry.npmjs.org/node-releases/-/node-releases-2.0.13.tgz"
   integrity sha512-uYr7J37ae/ORWdZeQ1xxMJe3NtdmqMC/JZK+geofDrkLUApKRHPd18/TxtBOJ4A0/+uUIliorNrfYV6s1b02eQ==
 
-"node-sped-nfe-custom@https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/cacio/sped-nfe.git":
-  version "1.2.36"
-  resolved "https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/cacio/sped-nfe.git#fa79fefa2e09ddfcea9a506addaf173abe4c795b"
+node-sped-nfe-custom@^1.2.37:
+  version "1.2.37"
+  resolved "https://registry.yarnpkg.com/node-sped-nfe-custom/-/node-sped-nfe-custom-1.2.37.tgz#28e1590d28eafd46e8622488f24dae13c7133667"
+  integrity sha512-jShXkDeppqxoMoaFWDYvdND2bnPNzXACLQQdMImELQYZJi1FyrvbwkSgs0HTVthW7y/0IBwjf6bdO+owHDaHoQ==
   dependencies:
     crypto "^1.0.1"
     fast-xml-parser "^4.5.1"
