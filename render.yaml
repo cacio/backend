@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: backend-prodnfe
+    env: docker
+    plan: Starter
+    branch: main
+    region: oregon
+    buildFilter:
+      paths:
+        - Dockerfile
+    healthCheckPath: /
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: GITHUB_USERNAME
+        sync: false
+      - key: GITHUB_TOKEN
+        sync: false
+      - key: DATABASE_URL
+        sync: false

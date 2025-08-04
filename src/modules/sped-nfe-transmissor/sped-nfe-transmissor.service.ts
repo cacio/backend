@@ -38,7 +38,8 @@ export class SpedNfeTransmissorService {
 
             let eTools = new Tools({
                 mod: '55',
-                xmllint: xmllintPath, // path to xmllint binary or leave as empty string if not used
+                //xmllint: xmllintPath, // path to xmllint para local windows
+                xmllint: '/usr/bin/xmllint', // path to xmllint para linux
                 UF: empresa.uf,
                 tpAmb: 2,
                 CSC: '', // Código de Segurança do Contribuinte (emissor)
@@ -186,6 +187,7 @@ export class SpedNfeTransmissorService {
                         }
                         return acc;
                     }, {} as Record<string, any>);
+
                     NFe.tagEnderEmit(enderecoEmitente);
 
                     const clienteDest = await this.prisma.fornecedor.findUnique({
@@ -1048,6 +1050,10 @@ export class SpedNfeTransmissorService {
 
     async somenteNumeros(valor?: string | null): Promise<string> {
         return (valor || '').replace(/\D/g, '');
+    }
+
+    async HandlerSendMailNFe(){
+
     }
 
 }
