@@ -42,31 +42,31 @@ export class AsyncService {
             dataFormatted = new Date(0);
         }
 
-        const fornecedor = {
+        const fornecedor: { created: any[]; updated: any[]; deleted: string[] } = {
             created: await this.fornecedor.ListaFornecedoresCriados(dataFormatted, cnpj),
             updated: await this.fornecedor.ListaFornecedorAlterado(dataFormatted, cnpj),
             deleted: [],
         };
 
-        const produtos = {
+        const produtos: { created: any[]; updated: any[]; deleted: string[] } = {
             created: await this.produto.ListaProdutoCriado(dataFormatted, cnpj),
             updated: await this.produto.ListaProdutoAlterado(dataFormatted, cnpj),
             deleted: [],
         };
 
-        const condicoespagamento = {
+        const condicoespagamento: { created: any[]; updated: any[]; deleted: string[] } = {
             created: await this.condicoesPagamento.ListaCondicoesPagamentoCriado(dataFormatted, cnpj),
             updated: await this.condicoesPagamento.ListaCondicoesPagamentoAlterado(dataFormatted, cnpj),
             deleted: [],
         };
 
-        const cfop_natura = {
+        const cfop_natura: { created: any[]; updated: any[]; deleted: string[] } = {
             created: await this.cfop.ListaCfopCriados(dataFormatted, cnpj),
             updated: await this.cfop.ListaCfopAlterados(dataFormatted, cnpj),
             deleted: [],
         };
 
-        const tb_manifestos = {
+        const tb_manifestos: { created: any[]; updated: any[]; deleted: string[] } = {
             created: await this.ManifestoService.ListaManifestoCriado(dataFormatted, cnpj, codrepre),
             updated: [],
             deleted: [],

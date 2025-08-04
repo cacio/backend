@@ -241,7 +241,7 @@ export class ProdutoService {
             mediaprecounitario:Number(prod.mediaprecounitario) || 0
         }));
     }
-    async findAll(cnpj) {
+    async findAll(cnpj:string) {
         const getEmpresa = await this.prisma.empresa.findFirst({
             where: {
                 cnpj

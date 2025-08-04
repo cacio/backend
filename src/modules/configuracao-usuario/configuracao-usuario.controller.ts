@@ -6,7 +6,7 @@ export class ConfiguracaoUsuarioController {
   constructor(private readonly configuracaoUsuarioService: ConfiguracaoUsuarioService) {}
 
   @Post(':cnpj')
-  async create(@Body() data: CreateUsuarioConfiguracaoDto, @Param('cnpj') cnpj){
+  async create(@Body() data: CreateUsuarioConfiguracaoDto, @Param('cnpj') cnpj:string){
     return this.configuracaoUsuarioService.create(data,cnpj);
   }
 }

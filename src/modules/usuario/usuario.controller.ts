@@ -7,12 +7,12 @@ export class UsuarioController {
   constructor(private readonly usuarioService: UsuarioService) { }
 
   @Post(':cnpj')
-  async create(@Body() data: UsuarioDTO, @Param('cnpj') cnpj) {
+  async create(@Body() data: UsuarioDTO, @Param('cnpj') cnpj:string) {
     return this.usuarioService.create(data, cnpj);
   }
 
   @Post('update/:cnpj/:id')
-  async Userupdate(@Body() data: UsuarioUpdateDTO, @Param('id') id, @Param('cnpj') cnpj) {
+  async Userupdate(@Body() data: UsuarioUpdateDTO, @Param('id') id:string, @Param('cnpj') cnpj:string) {
     // console.log('aqui');
     return this.usuarioService.updateUser(id, data, cnpj);
   }
