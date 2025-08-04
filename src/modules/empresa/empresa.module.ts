@@ -5,6 +5,6 @@ import { PrismaService } from 'src/datrabase/PrismaService';
 
 @Module({
   controllers: [EmpresaController],
-  providers: [EmpresaService,PrismaService],
+  providers: [EmpresaService],
 })
 export class EmpresaModule {}

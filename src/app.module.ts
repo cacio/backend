@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { DatabaseModule } from './datrabase/database.module';
 import { UsuarioModule } from './modules/usuario/usuario.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { AsyncModule } from './modules/async/async.module';
@@ -13,7 +14,7 @@ import { ConfiguracaoModule } from './modules/configuracao/configuracao.module';
 import { ConfiguracaoUsuarioModule } from './modules/configuracao-usuario/configuracao-usuario.module';
 
 @Module({
-  imports: [UsuarioModule, AuthModule, AsyncModule, FornecedorModule, ProdutoModule, EmpresaModule, CondicoesPagamentoModule, CfopModule, ManifestoModule, SpedNfeTransmissorModule, ConfiguracaoModule, ConfiguracaoUsuarioModule],
+  imports: [DatabaseModule,UsuarioModule, AuthModule, AsyncModule, FornecedorModule, ProdutoModule, EmpresaModule, CondicoesPagamentoModule, CfopModule, ManifestoModule, SpedNfeTransmissorModule, ConfiguracaoModule, ConfiguracaoUsuarioModule],
   controllers: [],
   providers: [],
 })

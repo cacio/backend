@@ -4,6 +4,6 @@ import { ConfiguracaoUsuarioController } from './configuracao-usuario.controller
 import { PrismaService } from 'src/datrabase/PrismaService';
 @Module({
   controllers: [ConfiguracaoUsuarioController],
-  providers: [ConfiguracaoUsuarioService,PrismaService],
+  providers: [ConfiguracaoUsuarioService],
 })
 export class ConfiguracaoUsuarioModule {}

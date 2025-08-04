@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtModule } from '@nestjs/jwt';
-import { PrismaService } from 'src/datrabase/PrismaService';
 import { UsuarioModule } from '../usuario/usuario.module';
 
 import { jwtConstants } from './constantes';
@@ -18,7 +17,7 @@ import { UsuarioService } from '../usuario/usuario.service';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService,PrismaService,UsuarioService],
+  providers: [AuthService,UsuarioService],
   exports: [AuthService],
 })
 export class AuthModule {}
