@@ -22,8 +22,7 @@ RUN npm install
 # Copia o resto do código-fonte.
 COPY . .
 
-# Gera o Prisma Client. Este passo é crucial.
-# Os arquivos gerados estarão em /usr/src/app/node_modules/.prisma/client
+# Gera o Prisma Client.
 RUN npx prisma generate
 
 # Compila o projeto NestJS.
@@ -58,8 +57,11 @@ FROM node:20-alpine AS final
 
 ENV NODE_ENV=production
 
-# Instala a dependência de sistema 'libxml2-utils' necessária em tempo de execução.
-RUN apk add --no-cache libxml2-utils
+# --- A CORREÇÃO ESTÁ AQUI ---
+# Instala as dependências de sistema necessárias em tempo de execução.
+# - libxml2-utils: Solicitado por você.
+# - openssl1.1-compat: Fornece a libssl.so.1.1, que é necessária pelo motor do Prisma no Alpine.
+RUN apk add --no-cache libxml2-utils openssl1.1-compat
 
 WORKDIR /usr/src/app
 
@@ -69,7 +71,6 @@ COPY --from=builder /usr/src/app/prisma ./prisma
 COPY --from=prod-deps /usr/src/app/node_modules ./node_modules
 COPY package.json .
 
-# --- A CORREÇÃO ESTÁ AQUI ---
 # Copia o Prisma Client gerado no estágio 'builder' para dentro dos node_modules de produção.
 COPY --from=builder /usr/src/app/node_modules/.prisma/client ./node_modules/.prisma/client
 
