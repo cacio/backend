@@ -1,54 +1,58 @@
-# =====================================================================================
+# ========================
 # BUILD STAGE
-# Usando node:20-slim (baseado em Debian) para máxima compatibilidade.
-# =====================================================================================
+# ========================
 FROM node:20-slim AS builder
 
-# Instala dependências do sistema operacional.
+# Instala dependências necessárias para build e Prisma (como openssl)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     python3 \
     make \
     g++ \
     libxml2-utils \
+    openssl \
     procps \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /usr/src/app
 
+# Copia arquivos de dependência e instala módulos
 COPY package*.json ./
-
 RUN npm install
 
+# Copia o restante do código
 COPY . .
 
-# Agora, este comando vai gerar TODOS os binários que listamos no schema.prisma.
+# Gera client do Prisma
 RUN npx prisma generate
 
+# Compila o NestJS
 RUN npm run build
 
-# =====================================================================================
+
+# ========================
 # PRODUCTION STAGE
-# Esta é a imagem final. Também baseada em Debian slim.
-# =====================================================================================
+# ========================
 FROM node:20-slim AS final
 
 ENV NODE_ENV=production
 
-# Instala apenas as dependências de sistema de produção.
+# Instala apenas libs mínimas necessárias para rodar
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libxml2-utils \
+    openssl \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /usr/src/app
 
-# Copia os artefatos das fases anteriores.
-# A pasta node_modules agora contém TODOS os binários necessários.
+# Copia o necessário do builder
 COPY --from=builder /usr/src/app/dist ./dist
 COPY --from=builder /usr/src/app/prisma ./prisma
 COPY --from=builder /usr/src/app/node_modules ./node_modules
 COPY package.json .
 
+# Expõe a porta padrão do Nest
 EXPOSE 3000
 
+# Inicia o app
 CMD ["node", "dist/main"]
