@@ -44,8 +44,8 @@ export class SpedNfeTransmissorService {
 
             let eTools = new Tools({
                 mod: '55',
-                xmllint: xmllintPath, // path to xmllint para local windows
-                //xmllint: '/usr/bin/xmllint', // path to xmllint para linux
+                //xmllint: xmllintPath, // path to xmllint para local windows
+                xmllint: '/usr/bin/xmllint', // path to xmllint para linux
                 UF: empresa.uf,
                 tpAmb: 2,
                 CSC: '', // Código de Segurança do Contribuinte (emissor)
