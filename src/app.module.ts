@@ -12,9 +12,10 @@ import { ManifestoModule } from './modules/manifesto/manifesto.module';
 import { SpedNfeTransmissorModule } from './modules/sped-nfe-transmissor/sped-nfe-transmissor.module';
 import { ConfiguracaoModule } from './modules/configuracao/configuracao.module';
 import { ConfiguracaoUsuarioModule } from './modules/configuracao-usuario/configuracao-usuario.module';
+import { MailModule } from './modules/mail/mail.module';
 
 @Module({
-  imports: [DatabaseModule,UsuarioModule, AuthModule, AsyncModule, FornecedorModule, ProdutoModule, EmpresaModule, CondicoesPagamentoModule, CfopModule, ManifestoModule, SpedNfeTransmissorModule, ConfiguracaoModule, ConfiguracaoUsuarioModule],
+  imports: [DatabaseModule,UsuarioModule, AuthModule, AsyncModule, FornecedorModule, ProdutoModule, EmpresaModule, CondicoesPagamentoModule, CfopModule, ManifestoModule, SpedNfeTransmissorModule, ConfiguracaoModule, ConfiguracaoUsuarioModule, MailModule],
   controllers: [],
   providers: [],
 })

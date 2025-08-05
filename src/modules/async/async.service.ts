@@ -132,7 +132,7 @@ export class AsyncService {
 
     async AsyncPush(data: AsyncPushDto) {
         try {
-            console.log(data.nfe_produtos);
+            //console.log(data.nfe_produtos);
 
             await this.prisma.$transaction(async (tx) => {
                 await this.processChanges(tx.nfe, data.nfe, 'id', this.fixTypesNfe);

@@ -8,9 +8,15 @@ import * as path from 'path';
 import { TransmissaoNfeDto, CancelamentoDto, CartaCorrecaoDto, InutilizaDto } from './DTO/transmissao-nfe.dto';
 import { format } from 'date-fns-tz';
 import { limparCamposZero } from '../../utils/limpar-campos-zero';
+import { MailService } from '../mail/mail.service';
+import { DANFe } from 'node-sped-pdf';
+// @ts-ignore: No type declarations available for 'node-sped-pdf'
 @Injectable()
 export class SpedNfeTransmissorService {
-    constructor(private prisma: PrismaService) { }
+    constructor(
+        private prisma: PrismaService,
+        private mailService: MailService
+    ) { }
 
     async transmitirNFE(dadosNFE: TransmissaoNfeDto[], cnpj: string) {
         try {
@@ -38,8 +44,8 @@ export class SpedNfeTransmissorService {
 
             let eTools = new Tools({
                 mod: '55',
-                //xmllint: xmllintPath, // path to xmllint para local windows
-                xmllint: '/usr/bin/xmllint', // path to xmllint para linux
+                xmllint: xmllintPath, // path to xmllint para local windows
+                //xmllint: '/usr/bin/xmllint', // path to xmllint para linux
                 UF: empresa.uf,
                 tpAmb: 2,
                 CSC: '', // Código de Segurança do Contribuinte (emissor)
@@ -197,18 +203,19 @@ export class SpedNfeTransmissorService {
                         }
                     })
 
-                    //console.log(clienteDest);
-
+                    console.log(clienteDest);
+                    if (!clienteDest) {
+                        throw new HttpException(`Cliente com código ${transmissao.nfe.fornecedor_codigo} não encontrado`, HttpStatus.NOT_FOUND);
+                    }
                     NFe.tagDest({
-                        ...(clienteDest.cpf
-                            ? { CPF: clienteDest.cpf }
-                            : { CNPJ: clienteDest.cnpj }),
+                        ...(this.isCpf(clienteDest.cpf)
+                        ? { CPF: clienteDest.cpf }
+                        : { CNPJ: clienteDest.cnpj }),
                         xNome: `(${clienteDest.cod_retaquarda}) ${clienteDest.xnome}`,
                         indIEDest: clienteDest.ie ? 1 : 2,
-                        IE: clienteDest.ie,
-
+                        IE: clienteDest.ie || undefined,
                         ...(clienteDest.email && { email: clienteDest.email })
-                    });
+                        });
 
 
                     NFe.tagEnderDest({
@@ -543,6 +550,33 @@ export class SpedNfeTransmissorService {
                                 },
                             });
                             idevent = idevento.id;
+
+                            try {
+                                const clienteDest = await this.prisma.fornecedor.findUnique({
+                                    where: {
+                                        codigo: transmissao.nfe.fornecedor_codigo,
+                                        idemp: empresa.id
+                                    }
+                                });
+
+                                if (clienteDest?.email) {
+                                    await this.HandlerSendMailNFe({
+                                        destinatarioEmail: clienteDest.email,
+                                        xmlAutorizado: nfeProc, // O XML completo e autorizado
+                                        empresaNome: empresa.xnome,
+                                        numeroNota: Number(transmissao.nfe.nfe_numeracao),
+                                        serieNota: transmissao.nfe.nfe_serie,
+                                        idempre: empresa.id,
+                                    });
+                                } else {
+                                    console.warn(`NF-e ${transmissao.nfe.nfe_numeracao} autorizada, mas o cliente não possui e-mail cadastrado.`);
+                                }
+                            } catch (emailError) {
+                                // Logar o erro de e-mail mas não interromper o fluxo principal
+                                console.error(`ERRO AO ENVIAR E-MAIL da NF-e ${transmissao.nfe.nfe_numeracao}:`, emailError.message);
+                                // Você pode adicionar o erro ao objeto de resultado se desejar
+                                // resultados[resultados.length - 1].erro += ` | Falha no envio de e-mail: ${emailError.message}`;
+                            }
                         } else {
                             const infProt = (retornoObj as any)?.retEnviNFe?.protNFe?.infProt;
                             const idevento = await this.prisma.nfe_evento.create({
@@ -622,6 +656,10 @@ export class SpedNfeTransmissorService {
                 );
             }
         }
+    }
+
+    isCpf(valor: string | undefined | null): valor is string {
+        return !!valor && valor.trim().length === 11;
     }
 
     async HandlerCancelamentoNFe(dados: CancelamentoDto, cnpj: string) {
@@ -1052,8 +1090,68 @@ export class SpedNfeTransmissorService {
         return (valor || '').replace(/\D/g, '');
     }
 
-    async HandlerSendMailNFe(){
+    /**
+    * @description Gera o DANFE em PDF, monta e envia o e-mail para o destinatário.
+    */
+    async HandlerSendMailNFe(dados: {
+        destinatarioEmail: string;
+        xmlAutorizado: string;
+        empresaNome: string;
+        numeroNota: number;
+        serieNota: string;
+        idempre:string;
+    }) {
+        try {
+            console.log(`Iniciando geração do DANFE e envio de e-mail para ${dados.destinatarioEmail}...`);
 
+            // 1. Gerar o PDF do DANFE a partir do XML autorizado
+            // A biblioteca já oferece uma função para isso, que retorna um Buffer do PDF.
+            const pdfBuffer = await DANFe({ xml: String(dados.xmlAutorizado) });
+
+            // 2. Definir o nome dos arquivos em anexo
+            const nomeBaseArquivo = `NFe-${dados.serieNota}-${String(dados.numeroNota).padStart(9, '0')}`;
+            const nomeXml = `${nomeBaseArquivo}.xml`;
+            const nomePdf = `${nomeBaseArquivo}.pdf`;
+
+            // 3. Montar o corpo do e-mail
+            const subject = `NF-e Recebida: ${dados.empresaNome} - Nota Fiscal Nº ${dados.numeroNota}`;
+            const textBody = `Olá,\n\nVocê está recebendo a Nota Fiscal Eletrônica (NF-e) número ${dados.numeroNota}, série ${dados.serieNota}, emitida por ${dados.empresaNome}.\n\nO DANFE (em PDF) e o arquivo XML da nota fiscal seguem em anexo.\n\nAtenciosamente,\n${dados.empresaNome}`;
+            const htmlBody = `
+                <p>Olá,</p>
+                <p>Você está recebendo a Nota Fiscal Eletrônica (NF-e) número <strong>${dados.numeroNota}</strong>, série <strong>${dados.serieNota}</strong>, emitida por <strong>${dados.empresaNome}</strong>.</p>
+                <p>O DANFE (em PDF) e o arquivo XML da nota fiscal seguem em anexo.</p>
+
+
+                <p>Atenciosamente,</p>
+                <p><strong>${dados.empresaNome}</strong></p>
+            `;
+
+            // 4. Chamar o serviço de e-mail
+            await this.mailService.sendNfeEmail({
+                to: dados.destinatarioEmail,
+                subject: subject,
+                text: textBody,
+                html: htmlBody,
+                attachments: [
+                    {
+                        filename: nomePdf,
+                        content: pdfBuffer, // Buffer do PDF gerado
+                        contentType: 'application/pdf',
+                    },
+                    {
+                        filename: nomeXml,
+                        content: dados.xmlAutorizado, // String do XML
+                        contentType: 'application/xml',
+                    },
+                ],
+                idEmpresa: dados.idempre || '',
+            });
+
+        } catch (error) {
+            console.error(`[HandlerSendMailNFe] Falha no processo de envio de e-mail:`, error);
+            // Propaga o erro para que a função chamadora possa tratá-lo
+            throw error;
+        }
     }
 
 }
