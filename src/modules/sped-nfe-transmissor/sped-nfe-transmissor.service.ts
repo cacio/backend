@@ -7,7 +7,7 @@ import * as os from 'os';
 import * as path from 'path';
 
 import { TransmissaoNfeDto, CancelamentoDto, CartaCorrecaoDto, InutilizaDto } from './DTO/transmissao-nfe.dto';
-import { format } from 'date-fns-tz';
+import { formatInTimeZone,format } from 'date-fns-tz';
 import { limparCamposZero } from '../../utils/limpar-campos-zero';
 import { MailService } from '../mail/mail.service';
 import { DANFe } from 'node-sped-pdf';
@@ -147,6 +147,12 @@ export class SpedNfeTransmissorService {
 
                     console.log("data emissão: ",format(new Date(transmissao.nfe.nfe_dtemis), "yyyy-MM-dd'T'HH:mm:ssXXX", { timeZone: 'America/Sao_Paulo' }));
                     console.log("data emissão2: ",transmissao.nfe.nfe_dtemis);
+
+                    const timeZone       = 'America/Sao_Paulo';
+                    const formatString   = "yyyy-MM-dd'T'HH:mm:ssXXX";
+                    const dataemissao    = formatInTimeZone(transmissao.nfe.nfe_dtemis, timeZone, formatString);
+                    console.log("data emissão3: ",dataemissao);
+
                     NFe.tagIde({
                         cUF: String(empresa.cmun).substring(0, 2),
                         cNF: String(transmissao.nfe.nfe_codigo).padStart(8, "0"),
@@ -154,7 +160,7 @@ export class SpedNfeTransmissorService {
                         mod: "55",
                         serie: String(Number(transmissao.nfe.nfe_serie)),
                         nNF: transmissao.nfe.nfe_numeracao,
-                        dhEmi: format(new Date(transmissao.nfe.nfe_dtemis), "yyyy-MM-dd'T'HH:mm:ssXXX", { timeZone: 'America/Sao_Paulo' }),
+                        dhEmi: dataemissao,
                         tpNF: "1",
                         idDest: "1",
                         cMunFG: empresa.cmun,
