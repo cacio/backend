@@ -9,6 +9,7 @@ import { ManifestoService } from '../manifesto/manifesto.service';
 import {
     AsyncPushDto,
     ChangesDto,
+    ConfigUserDto,
     DuplicataDto,
     NfeDto,
     NfeEventoDto,
@@ -140,6 +141,7 @@ export class AsyncService {
                 await this.processChanges(tx.nfe_evento, data.nfe_evento, 'id', this.fixTypesNfeEvento);
                 await this.processChanges(tx.tab_duplicata, data.duplicatas, 'id', this.fixTypesDuplicata);
                 await this.processChanges(tx.usuario, data.usuario, 'id', this.fixTypesUser);
+                await this.processChanges(tx.usuarioConfiguracao, data.usuario_configuracao, 'id', this.fixTypesConfigUser);
             });
 
             throw new HttpException(
@@ -309,6 +311,14 @@ export class AsyncService {
         const clean = removeFields(item, ['user_id', 'idemp','token','passwd']);
         return {
             ...clean,
+        };
+    }
+
+    fixTypesConfigUser = async (item: Omit<ConfigUserDto, '_status' | '_changed'>): Promise<any> => {
+        const clean = removeFields(item, ['usuarioId', 'idemp','serie','cfop','numeroviaempressao','percpesoproduto','percprecoproduto']);
+        return {
+            ...clean,
+            codproxnfe: item.codproxnfe ? Number(item.codproxnfe) : undefined,
         };
     }
 }

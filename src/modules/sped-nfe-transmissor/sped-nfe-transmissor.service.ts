@@ -5,6 +5,7 @@ import { join } from 'path'
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
+
 import { TransmissaoNfeDto, CancelamentoDto, CartaCorrecaoDto, InutilizaDto } from './DTO/transmissao-nfe.dto';
 import { format } from 'date-fns-tz';
 import { limparCamposZero } from '../../utils/limpar-campos-zero';
@@ -32,7 +33,7 @@ export class SpedNfeTransmissorService {
             }
 
             const xmllintPath = join(process.cwd(), 'src', 'modules', 'sped-nfe-transmissor', 'libs', 'libxml', 'bin', 'xmllint.exe')
-
+            const opensslPath = join(process.cwd(), 'src', 'modules', 'sped-nfe-transmissor', 'libs', 'openssl', 'bin', 'openssl.exe')
             const certBuffer = Buffer.isBuffer(empresa.ConfiguracaoNFe.certPfx)
                 ? empresa.ConfiguracaoNFe.certPfx
                 : Buffer.from(empresa.ConfiguracaoNFe.certPfx as any)
@@ -52,6 +53,7 @@ export class SpedNfeTransmissorService {
                 CSCid: '', // Identificador do CSC
                 versao: '4.00',
                 timeout: 60000,
+                //openssl: opensslPath as any,
                 openssl: null,
                 CPF: '',
                 CNPJ: empresa.cnpj // use the CNPJ from the empresa object
@@ -142,7 +144,7 @@ export class SpedNfeTransmissorService {
                             idemp: empresa.id
                         }
                     });
-                    //console.log(transmissao.nfe.nfe_codigo);
+                    console.log(format(new Date(transmissao.nfe.nfe_dtemis), "yyyy-MM-dd'T'HH:mm:ssXXX", { timeZone: 'America/Sao_Paulo' }));
 
                     NFe.tagIde({
                         cUF: String(empresa.cmun).substring(0, 2),

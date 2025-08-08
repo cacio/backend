@@ -109,17 +109,32 @@ export class DuplicataDto {
   _changed?: string;
 }
 
-export class UserDto{
-  id:string;
-  nome:string;
-  email:string;
-  login:string;
-  passwd:string;
-  photo:string;
-  codrepre:string;
-  user_ativo:string;
+export class UserDto {
+  id: string;
+  nome: string;
+  email: string;
+  login: string;
+  passwd: string;
+  photo: string;
+  codrepre: string;
+  user_ativo: string;
   created_at?: string;
   updated_at?: string;
+
+  _status?: 'created' | 'updated' | 'deleted';
+  _changed?: string;
+}
+
+export class ConfigUserDto {
+  id: string;
+  user_id: string;
+  serie?: string;
+  cfop?: string;
+  numeroviaempressao?: number;
+  codproxnfe?: string;
+  idemp?: string;
+  percpesoproduto?: number;
+  percprecoproduto?: number;
 
   _status?: 'created' | 'updated' | 'deleted';
   _changed?: string;
@@ -164,6 +179,12 @@ export class AsyncPushDto {
   @ValidateNested()
   @Type(() => ChangesDto)
   usuario: ChangesDto<UserDto>;
+
+  @IsObject()
+  @ValidateNested()
+  @Type(() => ChangesDto)
+  usuario_configuracao: ChangesDto<ConfigUserDto>;
+
 }
 
 export function stripSyncFields<T extends Record<string, any>>(obj: T): Omit<T, '_status' | '_changed'> {
