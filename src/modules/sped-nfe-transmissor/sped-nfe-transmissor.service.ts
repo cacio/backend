@@ -144,8 +144,9 @@ export class SpedNfeTransmissorService {
                             idemp: empresa.id
                         }
                     });
-                    console.log(format(new Date(transmissao.nfe.nfe_dtemis), "yyyy-MM-dd'T'HH:mm:ssXXX", { timeZone: 'America/Sao_Paulo' }));
 
+                    console.log("data emissão: ",format(new Date(transmissao.nfe.nfe_dtemis), "yyyy-MM-dd'T'HH:mm:ssXXX", { timeZone: 'America/Sao_Paulo' }));
+                    console.log("data emissão2: ",transmissao.nfe.nfe_dtemis);
                     NFe.tagIde({
                         cUF: String(empresa.cmun).substring(0, 2),
                         cNF: String(transmissao.nfe.nfe_codigo).padStart(8, "0"),
@@ -205,7 +206,7 @@ export class SpedNfeTransmissorService {
                         }
                     })
 
-                    console.log(clienteDest);
+                    //console.log(clienteDest);
                     if (!clienteDest) {
                         throw new HttpException(`Cliente com código ${transmissao.nfe.fornecedor_codigo} não encontrado`, HttpStatus.NOT_FOUND);
                     }
@@ -291,7 +292,7 @@ export class SpedNfeTransmissorService {
 
                     for (let index = 0; index < produtos.length; index++) {
                         const p = produtos[index];
-                        console.log(p);
+                        //console.log(p);
                         const dadosproduto = await this.prisma.produtos.findUnique({
                             where: {
                                 codigo: p.produtos_codigo,
@@ -406,14 +407,14 @@ export class SpedNfeTransmissorService {
 
                             });
 
-                            console.log("CST PIS: ", {
-                                CST: String(CSTPISCOFINS).padStart(2, "0").trim(),
-                                vBC: p.nfe_vbcpis,
-                                pPIS: AliquotaPis,
-                                //qBCProd: 0,
-                                vAliqProd: 0,
-                                vPIS: p.nfe_vpis,
-                            });
+                            // console.log("CST PIS: ", {
+                            //     CST: String(CSTPISCOFINS).padStart(2, "0").trim(),
+                            //     vBC: p.nfe_vbcpis,
+                            //     pPIS: AliquotaPis,
+                            //     //qBCProd: 0,
+                            //     vAliqProd: 0,
+                            //     vPIS: p.nfe_vpis,
+                            // });
 
                             NFe.taginfAdProd(index, {
                                 infAdProd: `PC:${p.nfe_pecas}`

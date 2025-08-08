@@ -318,7 +318,7 @@ export class AsyncService {
         const clean = removeFields(item, ['usuarioId', 'idemp','serie','cfop','numeroviaempressao','percpesoproduto','percprecoproduto']);
         return {
             ...clean,
-            codproxnfe: item.codproxnfe ? Number(item.codproxnfe) : undefined,
+            codproxnfe: item.codproxnfe ? String(item.codproxnfe) : undefined,
         };
     }
 }
