@@ -34,4 +34,10 @@ export class SpedNfeTransmissorController {
   async InutlizacaoNFe(@Body() dados:InutilizaDto,@Param('cnpj') cnpj:string){
     return this.spedNfeTransmissorService.HandlerInutilizaNFe(dados,cnpj);
   }
+
+  @Post('reenvio-email/:cnpj')
+  @HttpCode(200)
+  async ReenviarEmail(@Body() dados:any,@Param('cnpj') cnpj:string){
+    return this.spedNfeTransmissorService.HandlerReenvioEmail(dados);
+  }
 }

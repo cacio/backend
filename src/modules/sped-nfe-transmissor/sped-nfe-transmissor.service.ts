@@ -7,7 +7,7 @@ import * as os from 'os';
 import * as path from 'path';
 
 import { TransmissaoNfeDto, CancelamentoDto, CartaCorrecaoDto, InutilizaDto } from './DTO/transmissao-nfe.dto';
-import { formatInTimeZone,format } from 'date-fns-tz';
+import { formatInTimeZone, format } from 'date-fns-tz';
 import { limparCamposZero } from '../../utils/limpar-campos-zero';
 import { MailService } from '../mail/mail.service';
 import { DANFe } from 'node-sped-pdf';
@@ -41,7 +41,7 @@ export class SpedNfeTransmissorService {
             // Cria um caminho temporário único para o arquivo .pfx
             const tempPfxPath = path.join(os.tmpdir(), `cert-${empresa.cnpj}.pfx`);
 
-            fs.writeFileSync(tempPfxPath, certBuffer);
+            fs.writeFileSync(tempPfxPath, new Uint8Array(certBuffer));
 
             let eTools = new Tools({
                 mod: '55',
@@ -145,21 +145,21 @@ export class SpedNfeTransmissorService {
                         }
                     });
 
-                    console.log("data emissão: ",format(new Date(transmissao.nfe.nfe_dtemis), "yyyy-MM-dd'T'HH:mm:ssXXX", { timeZone: 'America/Sao_Paulo' }));
-                    console.log("data emissão2: ",transmissao.nfe.nfe_dtemis);
+                    console.log("data emissão: ", format(new Date(transmissao.nfe.nfe_dtemis), "yyyy-MM-dd'T'HH:mm:ssXXX", { timeZone: 'America/Sao_Paulo' }));
+                    console.log("data emissão2: ", transmissao.nfe.nfe_dtemis);
 
-                    const timeZone       = 'America/Sao_Paulo';
-                    const formatString   = "yyyy-MM-dd'T'HH:mm:ssXXX";
-                    const dataemissao    = formatInTimeZone(transmissao.nfe.nfe_dtemis, timeZone, formatString);
-                    console.log("data emissão3: ",dataemissao);
+                    const timeZone = 'America/Sao_Paulo';
+                    const formatString = "yyyy-MM-dd'T'HH:mm:ssXXX";
+                    const dataemissao = formatInTimeZone(transmissao.nfe.nfe_dtemis, timeZone, formatString);
+                    console.log("data emissão3: ", dataemissao);
 
                     NFe.tagIde({
                         cUF: String(empresa.cmun).substring(0, 2),
-                        cNF: String(transmissao.nfe.nfe_codigo).padStart(8, "0"),
+                        cNF: String(transmissao.nfe.nfe_numeracao).padStart(8, "0"),
                         natOp: cfop.Nome,
                         mod: "55",
                         serie: String(Number(transmissao.nfe.nfe_serie)),
-                        nNF: transmissao.nfe.nfe_numeracao,
+                        nNF: Number(transmissao.nfe.nfe_codigo),
                         dhEmi: dataemissao,
                         tpNF: "1",
                         idDest: "1",
@@ -218,22 +218,22 @@ export class SpedNfeTransmissorService {
                     }
                     NFe.tagDest({
                         ...(this.isCpf(clienteDest.cpf)
-                        ? { CPF: clienteDest.cpf }
-                        : { CNPJ: clienteDest.cnpj }),
+                            ? { CPF: clienteDest.cpf }
+                            : { CNPJ: clienteDest.cnpj }),
                         xNome: `(${clienteDest.cod_retaquarda}) ${clienteDest.xnome}`,
                         indIEDest: clienteDest.ie ? 1 : 2,
                         IE: clienteDest.ie || undefined,
                         ...(clienteDest.email && { email: clienteDest.email })
-                        });
+                    });
 
 
                     NFe.tagEnderDest({
-                        xLgr: clienteDest.xlgr,
+                        xLgr: String(clienteDest.xlgr).trim().toUpperCase(),
                         nro: String(clienteDest.nro).trim(),
-                        xBairro: clienteDest.xbairro,
+                        xBairro: String(clienteDest.xbairro).trim().toUpperCase(),
                         cMun: clienteDest.cmun,
-                        xMun: clienteDest.xmun,
-                        UF: clienteDest.uf,
+                        xMun: String(clienteDest.xmun).trim().toUpperCase(),
+                        UF: String(clienteDest.uf).trim().toUpperCase(),
                         CEP: clienteDest.cep,
                         cPais: clienteDest.cpais,
                         xPais: clienteDest.xpais
@@ -266,19 +266,19 @@ export class SpedNfeTransmissorService {
                             //console.log(dadosmanifesto,' - ',transmissao.nfe.nfe_manifesto,' - ',dadosproduto.cprod);
                             const numeromanifesto = await this.somenteNumeros(transmissao.nfe.nfe_manifesto.substring(0, 15) || '');
                             return limparCamposZero({
-                                cProd: dadosproduto.cprod,
+                                cProd: "PROD" + dadosproduto.cprod,
                                 cEAN: dadosproduto?.cean == '0' || dadosproduto?.cean == '' ? 'SEM GTIN' : dadosproduto?.cean,
                                 xProd: dadosproduto?.xprod ?? '',
                                 NCM: String(dadosproduto?.ncm ?? '').padStart(8, "0"),
                                 cBenef: cfop?.CBENEF || dadosproduto?.CBENEF || '',
                                 //EXTIPI: '',
                                 CFOP: p.nfe_cfop,
-                                uCom: dadosproduto?.unMedida ?? 'UN',
+                                uCom: dadosproduto?.unMedida + "M",
                                 qCom: p.nfe_quantidade,
                                 vUnCom: p.nfe_valorunitario,
                                 vProd: p.nfe_subtotal,
                                 cEANTrib: String(dadosproduto?.ceantrib).trim() ?? 'SEM GTIN',
-                                uTrib: dadosproduto?.unMedida ?? 'UN',
+                                uTrib: dadosproduto?.unMedida + "M",
                                 qTrib: p.nfe_quantidade,
                                 vUnTrib: p.nfe_valorunitario,
                                 //vFrete: Number(0).toFixed(2),
@@ -425,6 +425,95 @@ export class SpedNfeTransmissorService {
                             NFe.taginfAdProd(index, {
                                 infAdProd: `PC:${p.nfe_pecas}`
                             });
+
+                            let vIBS = 0;
+                            let vCBS = 0;
+                            let vIS = 0;
+                            const vProd = p.nfe_subtotal ?? 0;
+
+                            if (dadosproduto.sujeitoIS || cfop.aplicaIS) {
+                                const valorBC = Number(p.nfe_subtotal || 0);
+                                const aliquotaIS = Number(dadosproduto.aliquotaIS || cfop.aliquotaIS_cfop || 0);
+                                const valorIS = valorBC * (aliquotaIS / 100);
+
+                                NFe.tagProdIS(index, {
+                                    CST: String(dadosproduto.CSTIS || cfop.CSTIS_padrao || "04").padStart(3, "0"),
+                                    cClassTribIS: dadosproduto.CClassTribIS,
+                                    vBC: valorBC,
+                                    pIS: aliquotaIS,
+                                    vIS: valorIS
+                                });
+                            }
+
+                            // ✅ 4. IBS E CBS - Usando campos EXATOS do banco
+                            // if (dadosproduto.sujeitoIBSCBS || cfop.aplicaIBSCBS) {
+                            const valorBC = Number(p.nfe_subtotal || 0);
+
+                            // Divisão do IBS conforme NT
+                            const anoEmissao = new Date(transmissao.nfe.nfe_dtemis).getFullYear();
+                            let aliquotaIBSUF, aliquotaIBSMun;
+
+                            const aliquotaIBSTotal = Number(dadosproduto.aliquotaIBS || cfop.aliquotaIBS_cfop || 0);
+
+                            if (anoEmissao === 2026) {
+                                aliquotaIBSUF = 0.1; // 0,1% para UF em 2026
+                                aliquotaIBSMun = Math.max(0, aliquotaIBSTotal - aliquotaIBSUF);
+                            } else if (anoEmissao >= 2027 && anoEmissao <= 2028) {
+                                aliquotaIBSUF = 0.05; // 0,05% para UF em 2027-2028
+                                aliquotaIBSMun = Math.max(0, aliquotaIBSTotal - aliquotaIBSUF);
+                            } else {
+                                // Para outros anos, dividir meio a meio
+                                aliquotaIBSUF = aliquotaIBSTotal / 2;
+                                aliquotaIBSMun = aliquotaIBSTotal / 2;
+                            }
+
+                            const aliquotaCBS = Number(dadosproduto.aliquotaCBS || cfop.aliquotaCBS_cfop || 0);
+
+                            // Calcular valores
+                            const valorIBSUF = valorBC * (aliquotaIBSUF / 100);
+                            const valorIBSMun = valorBC * (aliquotaIBSMun / 100);
+                            const valorCBS = valorBC * (aliquotaCBS / 100);
+
+                            // Verificar se é monofásico
+                            const isMonofasico = (Number(dadosproduto.vMonoIBS) > 0 || Number(dadosproduto.vMonoCBS) > 0);
+
+
+
+                            // Soma produto + tributos
+                            let vItem = (Number(vProd) + Number(vIBS) + Number(vCBS) + Number(vIS)).toFixed(2);
+
+
+                            NFe.tagProdIBSCBS(index, {
+                                CST: dadosproduto.CSTIBSCBS,
+                                cClassTrib: dadosproduto.CClassTribIBSCBS,
+
+                                vBC: p.nfe_subtotal,
+
+                                // Percentuais reais
+                                pIBSUF: dadosproduto.aliquotaIBS ?? 0,
+                                pIBSMun: dadosproduto.aliquotaIBS ?? 0,
+                                pCBS: dadosproduto.aliquotaCBS ?? 0,
+                            });
+
+
+                            //}
+                            vIBS = Number(((vProd * (Number(dadosproduto.aliquotaIBS ?? 0) + Number(dadosproduto.aliquotaIBS ?? 0))) / 100).toFixed(2));
+                            vCBS = Number(((vProd * (Number(dadosproduto.aliquotaIBS) ?? 0)) / 100).toFixed(2));
+                            if (dadosproduto.sujeitoIS || cfop.aplicaIS) {
+                                vIS = ((vProd * (Number(dadosproduto.aliquotaIS) ?? 0)) / 100);
+                            }
+                            // ✅ 5. TOTAL DO ITEM - Campo VB01
+                            const valorTotalItem = Number(p.nfe_subtotal) || 0 +
+                                0 +
+                                0 +
+                                Number(p.nfe_vdesconto) || 0;
+                            vItem = (vProd + vIBS + vCBS + vIS).toFixed(2);
+                            console.log(vProd,vIBS,vCBS,vIS);
+                            NFe.tagTotalItem(index, {
+                                vItem: vItem
+                            });
+
+
                         } catch (error) {
                             if (error instanceof HttpException) {
                                 throw error;
@@ -459,6 +548,10 @@ export class SpedNfeTransmissorService {
                         vOutro: transmissao.nfe.nfe_voutros.toFixed(2),
                         vNF: transmissao.nfe.nfe_total_nota.toFixed(2)
                     } as any);
+
+                    // Monta os totais da Reforma Tributária
+                    NFe.calcTotaisReformaTributaria();
+
                     NFe.tagTransp({ modFrete: 0 });
 
                     const formpag = await this.prisma.condicoes_pagamento.findFirst({
@@ -525,14 +618,14 @@ export class SpedNfeTransmissorService {
                     NFe.tagInfRespTec({ CNPJ: "92113026000164", xContato: "PRODASIQ Desenvolvimento de Sistema Eireli", email: "contato@prodasiq.com", fone: "555133913625" })
 
                     const xmlGerado = NFe.xml(); // XML gerado ainda não assinado
-
+                    console.log(xmlGerado);
                     const xmlAssinado = await eTools.xmlSign(xmlGerado); // XML assinado
 
                     const valid = await eTools.validarNFe(xmlAssinado)
 
                     let resultadoEnvio = "";
                     let jsonRetorno = "";
-
+                    let retEmail = [];
                     if (valid) {
                         resultadoEnvio = await eTools.sefazEnviaLote(xmlAssinado, { idLote: 1, indSinc: 1 });
 
@@ -577,14 +670,17 @@ export class SpedNfeTransmissorService {
                                         serieNota: transmissao.nfe.nfe_serie,
                                         idempre: empresa.id,
                                     });
+                                    retEmail.push({ email: clienteDest.email, status: 'enviado' });
                                 } else {
                                     console.warn(`NF-e ${transmissao.nfe.nfe_numeracao} autorizada, mas o cliente não possui e-mail cadastrado.`);
+                                    retEmail.push({ email: '', status: 'não enviado - sem e-mail cadastrado' });
                                 }
                             } catch (emailError) {
                                 // Logar o erro de e-mail mas não interromper o fluxo principal
                                 console.error(`ERRO AO ENVIAR E-MAIL da NF-e ${transmissao.nfe.nfe_numeracao}:`, emailError.message);
                                 // Você pode adicionar o erro ao objeto de resultado se desejar
                                 // resultados[resultados.length - 1].erro += ` | Falha no envio de e-mail: ${emailError.message}`;
+                                retEmail.push({ email: clienteDest?.email || '', status: 'erro ao enviar - ' + (emailError.message || emailError) });
                             }
                         } else {
                             const infProt = (retornoObj as any)?.retEnviNFe?.protNFe?.infProt;
@@ -616,6 +712,7 @@ export class SpedNfeTransmissorService {
                             retorno: jsonRetorno,
                             status: 'sucesso',
                             erro: '',
+                            email: retEmail
                         });
 
                     } else {
@@ -628,6 +725,7 @@ export class SpedNfeTransmissorService {
                             retorno: resultadoEnvio,
                             status: 'erro',
                             erro: resultadoEnvio,
+                            email: [] as { email: string; status: string }[]
                         });
                     }
 
@@ -687,7 +785,7 @@ export class SpedNfeTransmissorService {
                 ? empresa.ConfiguracaoNFe.certPfx
                 : Buffer.from(empresa.ConfiguracaoNFe.certPfx as any);
             const tempPfxPath = path.join(os.tmpdir(), `cert-${empresa.cnpj}.pfx`);
-            fs.writeFileSync(tempPfxPath, certBuffer);
+            fs.writeFileSync(tempPfxPath, new Uint8Array(certBuffer));
 
             const eTools = new Tools({
                 mod: '55',
@@ -827,7 +925,7 @@ export class SpedNfeTransmissorService {
                 ? empresa.ConfiguracaoNFe.certPfx
                 : Buffer.from(empresa.ConfiguracaoNFe.certPfx as any);
             const tempPfxPath = path.join(os.tmpdir(), `cert-${empresa.cnpj}.pfx`);
-            fs.writeFileSync(tempPfxPath, certBuffer);
+            fs.writeFileSync(tempPfxPath, new Uint8Array(certBuffer));
 
             const eTools = new Tools({
                 mod: '55',
@@ -967,7 +1065,7 @@ export class SpedNfeTransmissorService {
                 : Buffer.from(empresa.ConfiguracaoNFe.certPfx as any);
 
             const tempPfxPath = path.join(os.tmpdir(), `cert-${empresa.cnpj}.pfx`);
-            fs.writeFileSync(tempPfxPath, certBuffer);
+            fs.writeFileSync(tempPfxPath, new Uint8Array(certBuffer));
 
             const eTools = new Tools({
                 mod: '55',
@@ -1108,7 +1206,7 @@ export class SpedNfeTransmissorService {
         empresaNome: string;
         numeroNota: number;
         serieNota: string;
-        idempre:string;
+        idempre: string;
     }) {
         try {
             console.log(`Iniciando geração do DANFE e envio de e-mail para ${dados.destinatarioEmail}...`);
@@ -1158,6 +1256,53 @@ export class SpedNfeTransmissorService {
 
         } catch (error) {
             console.error(`[HandlerSendMailNFe] Falha no processo de envio de e-mail:`, error);
+            // Propaga o erro para que a função chamadora possa tratá-lo
+            throw error;
+        }
+    }
+
+    async HandlerReenvioEmail(dados: {
+        email: string;
+        chNFe: number;
+        nProt: string;
+        nfe_codigo: string;
+        idempre: string;
+    }) {
+        try {
+            console.log(dados);
+            const empresa = await this.prisma.empresa.findUnique({
+                where: { id: String(dados.idempre) },
+            });
+
+            if (!empresa) {
+                throw new HttpException(`Empresa não encontrada`, HttpStatus.NOT_FOUND);
+            }
+
+
+            const dadosNfe = await this.prisma.nfe_evento.findFirst({
+                where: {
+                    codigo_nfe: String(dados.nfe_codigo),
+                    protocolo: dados.nProt,
+                    chave_acesso: String(dados.chNFe),
+                    cstat: '100' // NF-e autorizada
+                }
+            });
+
+
+            await this.HandlerSendMailNFe({
+                destinatarioEmail: dados.email,
+                xmlAutorizado: dadosNfe.caminho_xml, // O XML completo e autorizado
+                empresaNome: empresa.xnome,
+                numeroNota: Number(dados.nfe_codigo),
+                serieNota: dadosNfe.serie,
+                idempre: empresa.id,
+            });
+
+            return {
+                sucesso: 'enviado com sucesso!'
+            }
+        } catch (error) {
+            console.error(`[HandlerReenvioEmail] Falha no processo de envio de e-mail:`, error);
             // Propaga o erro para que a função chamadora possa tratá-lo
             throw error;
         }
