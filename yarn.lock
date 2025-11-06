@@ -4245,10 +4245,10 @@ node-sped-nfe-custom@^1.2.62:
     tmp "^0.2.3"
     xml-crypto "^6.1.2"
 
-node-sped-pdf@^1.0.60:
-  version "1.0.60"
-  resolved "https://registry.yarnpkg.com/node-sped-pdf/-/node-sped-pdf-1.0.60.tgz#b85a9f34dcf16afea46ba2c888a15c663b08d692"
-  integrity sha512-/f7bHqoaQ1aZMtaAHjxmtKFjHDetCFI0TdqUP1oO6Fz6mMQoHIpHdMgD1IGpMYLxTjUa+z2akzlt4OHXPkaoZQ==
+node-sped-pdf@^1.0.65:
+  version "1.0.65"
+  resolved "https://registry.yarnpkg.com/node-sped-pdf/-/node-sped-pdf-1.0.65.tgz#505a52bfd0e2c7af7bb8245a1e42248124e8700b"
+  integrity sha512-Fn2ypTGa9ZryxnTNu3v/K+QUudtg1MWLJ33Ad6srD0k1kAFtw3nSVqK5s+dHxVNEGs/2NIPraArLzk17BH0O7g==
   dependencies:
     canvas "^3.1.0"
     fast-xml-parser "^5.2.0"

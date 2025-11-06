@@ -229,7 +229,7 @@ export class SpedNfeTransmissorService {
 
                     NFe.tagEnderDest({
                         xLgr: String(clienteDest.xlgr).trim().toUpperCase(),
-                        nro: String(clienteDest.nro).trim(),
+                        nro: this.limpaCampoValorNFe(String(clienteDest.nro).trim()),
                         xBairro: String(clienteDest.xbairro).trim().toUpperCase(),
                         cMun: clienteDest.cmun,
                         xMun: String(clienteDest.xmun).trim().toUpperCase(),
@@ -447,7 +447,6 @@ export class SpedNfeTransmissorService {
 
                             // ✅ 4. IBS E CBS - Usando campos EXATOS do banco
                             // if (dadosproduto.sujeitoIBSCBS || cfop.aplicaIBSCBS) {
-                            const valorBC = Number(p.nfe_subtotal || 0);
 
                             // Divisão do IBS conforme NT
                             const anoEmissao = new Date(transmissao.nfe.nfe_dtemis).getFullYear();
@@ -459,24 +458,13 @@ export class SpedNfeTransmissorService {
                                 aliquotaIBSUF = 0.1; // 0,1% para UF em 2026
                                 aliquotaIBSMun = Math.max(0, aliquotaIBSTotal - aliquotaIBSUF);
                             } else if (anoEmissao >= 2027 && anoEmissao <= 2028) {
-                                aliquotaIBSUF = 0.05; // 0,05% para UF em 2027-2028
+                                aliquotaIBSUF = 0.5; // 0,05% para UF em 2027-2028
                                 aliquotaIBSMun = Math.max(0, aliquotaIBSTotal - aliquotaIBSUF);
                             } else {
                                 // Para outros anos, dividir meio a meio
-                                aliquotaIBSUF = aliquotaIBSTotal / 2;
+                                aliquotaIBSUF = 0.1;
                                 aliquotaIBSMun = aliquotaIBSTotal / 2;
                             }
-
-                            const aliquotaCBS = Number(dadosproduto.aliquotaCBS || cfop.aliquotaCBS_cfop || 0);
-
-                            // Calcular valores
-                            const valorIBSUF = valorBC * (aliquotaIBSUF / 100);
-                            const valorIBSMun = valorBC * (aliquotaIBSMun / 100);
-                            const valorCBS = valorBC * (aliquotaCBS / 100);
-
-                            // Verificar se é monofásico
-                            const isMonofasico = (Number(dadosproduto.vMonoIBS) > 0 || Number(dadosproduto.vMonoCBS) > 0);
-
 
 
                             // Soma produto + tributos
@@ -490,15 +478,17 @@ export class SpedNfeTransmissorService {
                                 vBC: p.nfe_subtotal,
 
                                 // Percentuais reais
-                                pIBSUF: dadosproduto.aliquotaIBS ?? 0,
-                                pIBSMun: dadosproduto.aliquotaIBS ?? 0,
+                                pIBSUF: aliquotaIBSUF ?? 0,
+                                pIBSMun: 0,
                                 pCBS: dadosproduto.aliquotaCBS ?? 0,
                             });
 
 
-                            //}
-                            vIBS = Number(((vProd * (Number(dadosproduto.aliquotaIBS ?? 0) + Number(dadosproduto.aliquotaIBS ?? 0))) / 100).toFixed(2));
+
                             vCBS = Number(((vProd * (Number(dadosproduto.aliquotaIBS) ?? 0)) / 100).toFixed(2));
+                            const vUF = Number(((vProd * (Number(aliquotaIBSUF))) / 100).toFixed(2));
+                            const valorMun = Number(((vProd * (Number(0))) / 100).toFixed(2));
+                            //const vIBS = Number(((vProd * (Number(aliquotaIBSMun))) / 100).toFixed(2));
                             if (dadosproduto.sujeitoIS || cfop.aplicaIS) {
                                 vIS = ((vProd * (Number(dadosproduto.aliquotaIS) ?? 0)) / 100);
                             }
@@ -507,8 +497,8 @@ export class SpedNfeTransmissorService {
                                 0 +
                                 0 +
                                 Number(p.nfe_vdesconto) || 0;
-                            vItem = (vProd + vIBS + vCBS + vIS).toFixed(2);
-                            console.log(vProd,vIBS,vCBS,vIS);
+                            vItem = (vProd + vUF + valorMun + vCBS + vIS).toFixed(2);
+                            console.log(vProd,vUF,valorMun,vCBS,vIS);
                             NFe.tagTotalItem(index, {
                                 vItem: vItem
                             });
@@ -767,6 +757,18 @@ export class SpedNfeTransmissorService {
 
     isCpf(valor: string | undefined | null): valor is string {
         return !!valor && valor.trim().length === 11;
+    }
+
+
+    limpaCampoValorNFe(valor: string | number | null | undefined): string | number | null | undefined {
+        if (typeof valor !== 'string') return valor;
+
+        return valor
+            .normalize('NFD')                 // separa acentos para remover caso necessário
+            .replace(/[\u0300-\u036f]/g, '')  // remove diacríticos (opcional)
+            .replace(/[^\x20-\x7EÀ-ÿ]/g, '')  // remove caracteres invisíveis ou de controle
+            .replace(/\s+/g, ' ')             // normaliza espaços internos
+            .trim();                          // remove espaço início e fim
     }
 
     async HandlerCancelamentoNFe(dados: CancelamentoDto, cnpj: string) {
