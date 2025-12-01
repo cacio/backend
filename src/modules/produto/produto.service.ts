@@ -96,6 +96,11 @@ export class ProdutoService {
                     mediaprecounitario: produto["MEDIAPRECOUNITARIO"] ? produto["MEDIAPRECOUNITARIO"] : 0,
                     CENQ: produto["CENQ"],
                     CBENEF: produto["CBENEF"],
+                    CClassTribIBSCBS:produto['CClassTribIBSCBS'],
+                    CSTIBSCBS:produto['CSTIBSCBS'],
+                    CSTIS:produto['CSTISS'],
+                    aliquotaCBS:produto['aliquotaCBS'],
+                    aliquotaIBS:produto['aliquotaIBS']
                 };
 
                 if (existente) {

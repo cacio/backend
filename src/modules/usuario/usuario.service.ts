@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { UsuarioDTO, UsuarioUpdateDTO } from './usuario.dto';
 import { PrismaService } from 'src/datrabase/PrismaService';
 import { hashPassword } from '../auth/utils/bcrypt.utils';
@@ -27,7 +27,7 @@ export class UsuarioService {
         if (userExists) {
             throw new Error("Usuario ja exite");
         }
-       // console.log(users.passwd);
+
         const passwd = await hashPassword(users.passwd);
         const data = { ...users, passwd };
 
@@ -43,6 +43,97 @@ export class UsuarioService {
         });
 
         return user;
+    }
+
+    async findAll() {
+        try {
+            const usuarios = await this.prisma.usuario.findMany({
+                select: {
+                    id: true,
+                    nome: true,
+                    email: true,
+                    login: true,
+                    codrepre: true,
+                    user_ativo: true,
+                    created_at: true,
+                    empresas: {
+                        include: {
+                            empresa: {
+                                select: {
+                                    id: true,
+                                    xnome: true,
+                                    xfant: true,
+                                    cnpj: true
+                                }
+                            }
+                        }
+                    },
+                    _count: {
+                        select: {
+                            empresas: true
+                        }
+                    }
+                },
+                orderBy: {
+                    nome: 'asc'
+                }
+            });
+
+            return {
+                success: true,
+                data: usuarios
+            };
+        } catch (error) {
+            return {
+                success: false,
+                message: error.message
+            };
+        }
+    }
+
+    async findOneById(id: string) {
+        try {
+            const usuario = await this.prisma.usuario.findUnique({
+                where: { id },
+                select: {
+                    id: true,
+                    nome: true,
+                    email: true,
+                    login: true,
+                    codrepre: true,
+                    user_ativo: true,
+                    photo: true,
+                    created_at: true,
+                    updated_at: true,
+                    empresas: {
+                        include: {
+                            empresa: {
+                                select: {
+                                    id: true,
+                                    xnome: true,
+                                    xfant: true,
+                                    cnpj: true
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            if (!usuario) {
+                throw new NotFoundException('Usuário não encontrado');
+            }
+
+            return {
+                success: true,
+                data: usuario
+            };
+        } catch (error) {
+            return {
+                success: false,
+                message: error.message
+            };
+        }
     }
 
     async findoOne(fist_name: string, cnpj: string): Promise<User | undefined> {
@@ -68,10 +159,10 @@ export class UsuarioService {
                         empresa: true
                     }
                 },
-                configuracao:{
-                    where:{
-                        empresa:{
-                            cnpj:cnpj
+                configuracao: {
+                    where: {
+                        empresa: {
+                            cnpj: cnpj
                         }
                     }
                 }
@@ -94,15 +185,15 @@ export class UsuarioService {
         })
     }
 
-    async updateUser(id: string, data: UsuarioUpdateDTO,cnpj: string) {
+    async updateUser(id: string, data: UsuarioUpdateDTO, cnpj: string) {
 
         const passwd = data.passwd ? await hashPassword(data.passwd) : '';
-       // console.log('Senha: ',data);
+
         const user = await this.prisma.usuario.update({
             where: {
                 id
             },
-            data:{
+            data: {
                 nome: data.nome,
                 login: data.login,
                 email: data.email,
@@ -110,7 +201,128 @@ export class UsuarioService {
                 codrepre: data.codrepre
             }
         });
-       // console.log(user);
+
         return user;
+    }
+
+    async toggleStatus(id: string) {
+        try {
+            const usuario = await this.prisma.usuario.findUnique({
+                where: { id }
+            });
+
+            if (!usuario) {
+                throw new NotFoundException('Usuário não encontrado');
+            }
+
+            const novoStatus = usuario.user_ativo === 'S' ? 'N' : 'S';
+
+            const updated = await this.prisma.usuario.update({
+                where: { id },
+                data: {
+                    user_ativo: novoStatus as any
+                }
+            });
+
+            return {
+                success: true,
+                message: `Usuário ${novoStatus === 'S' ? 'ativado' : 'desativado'} com sucesso`,
+                data: updated
+            };
+        } catch (error) {
+            return {
+                success: false,
+                message: error.message
+            };
+        }
+    }
+
+    async getUsuarioEmpresas(id: string) {
+        try {
+            const usuario = await this.prisma.usuario.findUnique({
+                where: { id },
+                include: {
+                    empresas: {
+                        include: {
+                            empresa: true
+                        }
+                    }
+                }
+            });
+
+            if (!usuario) {
+                throw new NotFoundException('Usuário não encontrado');
+            }
+
+            return {
+                success: true,
+                data: usuario.empresas.map(ue => ue.empresa)
+            };
+        } catch (error) {
+            return {
+                success: false,
+                message: error.message
+            };
+        }
+    }
+
+    async vincularEmpresas(usuarioId: string, empresaIds: string[]) {
+        try {
+            const usuario = await this.prisma.usuario.findUnique({
+                where: { id: usuarioId }
+            });
+
+            if (!usuario) {
+                throw new NotFoundException('Usuário não encontrado');
+            }
+
+            // Remove todas as vinculações existentes
+            await this.prisma.usuarioEmpresa.deleteMany({
+                where: { usuarioId }
+            });
+
+            // Cria novas vinculações
+            const vinculacoes = empresaIds.map(empresaId => ({
+                usuarioId,
+                empresaId
+            }));
+
+            await this.prisma.usuarioEmpresa.createMany({
+                data: vinculacoes
+            });
+
+            return {
+                success: true,
+                message: 'Empresas vinculadas com sucesso'
+            };
+        } catch (error) {
+            return {
+                success: false,
+                message: error.message
+            };
+        }
+    }
+
+    async desvincularEmpresa(usuarioId: string, empresaId: string) {
+        try {
+            await this.prisma.usuarioEmpresa.delete({
+                where: {
+                    usuarioId_empresaId: {
+                        usuarioId,
+                        empresaId
+                    }
+                }
+            });
+
+            return {
+                success: true,
+                message: 'Empresa desvinculada com sucesso'
+            };
+        } catch (error) {
+            return {
+                success: false,
+                message: error.message
+            };
+        }
     }
 }

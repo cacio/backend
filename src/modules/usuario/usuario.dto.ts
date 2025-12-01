@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString,IsEnum,IsNumber } from "class-validator";
+import { IsNotEmpty, IsString,IsEnum,IsOptional,IsArray } from "class-validator";
 
 export enum usuario_user_ativo {
     S = 'S',
@@ -22,7 +22,7 @@ export class UsuarioDTO {
     passwd:string;
 
     @IsString()
-    photo:string;
+    photo?:string;
 
     created_at?:string;
 
@@ -38,14 +38,33 @@ export class UsuarioDTO {
 };
 
 export class UsuarioUpdateDTO {
-  @IsNotEmpty({ message: 'Email não pode ser vazio' })
-  email: string;
+  @IsOptional()
+  @IsString()
+  nome?: string;
+
+  @IsOptional()
+  @IsString()
+  email?: string;
+
+  @IsOptional()
+  @IsString()
+  login?: string;
+
+  @IsOptional()
   @IsString()
   passwd?: string;
-  @IsString({ message: 'Interior must be a valid string' })
-  nome: string;
-  @IsNotEmpty()
-  login: string;
-  @IsNotEmpty()
-  codrepre: string;
+
+  @IsOptional()
+  @IsString()
+  photo?: string;
+
+  @IsOptional()
+  @IsString()
+  codrepre?: string;
+}
+
+export class VincularEmpresasDTO {
+  @IsArray()
+  @IsString({ each: true })
+  empresaIds: string[];
 }

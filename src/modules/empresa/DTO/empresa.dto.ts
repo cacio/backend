@@ -1,88 +1,187 @@
-import { IsOptional, IsString, IsNumber, IsUUID, IsInt } from 'class-validator';
+import { IsString, IsOptional, IsInt, IsBoolean } from 'class-validator';
 
 export class CreateEmpresaDto {
+  @IsOptional()
+  @IsString()
+  cnpj?: string;
 
-    @IsOptional()
-    @IsString()
-    cnpj?: string;
+  @IsOptional()
+  @IsString()
+  cpf?: string;
 
-    @IsOptional()
-    @IsString()
-    cep?: string;
+  @IsOptional()
+  @IsString()
+  xnome?: string;
 
-    @IsOptional()
-    @IsInt()
-    cmun?: number;
+  @IsOptional()
+  @IsString()
+  xfant?: string;
 
-    @IsOptional()
-    @IsString()
-    cnae?: string;
+  @IsOptional()
+  @IsString()
+  enderemit?: string;
 
-    @IsOptional()
-    @IsString()
-    cpais?: string;
+  @IsOptional()
+  @IsString()
+  xlgr?: string;
 
-    @IsOptional()
-    @IsString()
-    cpf?: string;
+  @IsOptional()
+  @IsString()
+  nro?: string;
 
-    @IsOptional()
-    @IsInt()
-    crt?: number;
+  @IsOptional()
+  @IsString()
+  xcpl?: string;
 
-    @IsOptional()
-    @IsString()
-    enderemit?: string;
+  @IsOptional()
+  @IsString()
+  xbairro?: string;
 
-    @IsOptional()
-    @IsString()
-    fone?: string;
+  @IsOptional()
+  @IsInt()
+  cmun?: number;
 
-    @IsOptional()
-    @IsString()
-    ie?: string;
+  @IsOptional()
+  @IsString()
+  xmun?: string;
 
-    @IsOptional()
-    @IsString()
-    iest?: string;
+  @IsOptional()
+  @IsString()
+  uf?: string;
 
-    @IsOptional()
-    @IsString()
-    im?: string;
+  @IsOptional()
+  @IsString()
+  cep?: string;
 
-    @IsOptional()
-    @IsString()
-    nro?: string;
+  @IsOptional()
+  @IsString()
+  cpais?: string;
 
-    @IsOptional()
-    @IsString()
-    uf?: string;
+  @IsOptional()
+  @IsString()
+  xpais?: string;
 
-    @IsOptional()
-    @IsString()
-    xbairro?: string;
+  @IsOptional()
+  @IsString()
+  fone?: string;
 
-    @IsOptional()
-    @IsString()
-    xcpl?: string;
+  @IsOptional()
+  @IsString()
+  ie?: string;
 
-    @IsOptional()
-    @IsString()
-    xfant?: string;
+  @IsOptional()
+  @IsString()
+  iest?: string;
 
-    @IsOptional()
-    @IsString()
-    xlgr?: string;
+  @IsOptional()
+  @IsString()
+  im?: string;
 
-    @IsOptional()
-    @IsString()
-    xmun?: string;
+  @IsOptional()
+  @IsString()
+  cnae?: string;
 
-    @IsOptional()
-    @IsString()
-    xnome?: string;
+  @IsOptional()
+  @IsInt()
+  crt?: number;
 
-    @IsOptional()
-    @IsString()
-    xpais?: string;
+  @IsOptional()
+  @IsBoolean()
+  ativaReformaTributaria?: boolean;
+
+  @IsOptional()
+  dataInicioReformaTributaria?: Date;
+}
+
+export class UpdateEmpresaDto {
+  @IsOptional()
+  @IsString()
+  cnpj?: string;
+
+  @IsOptional()
+  @IsString()
+  cpf?: string;
+
+  @IsOptional()
+  @IsString()
+  xnome?: string;
+
+  @IsOptional()
+  @IsString()
+  xfant?: string;
+
+  @IsOptional()
+  @IsString()
+  enderemit?: string;
+
+  @IsOptional()
+  @IsString()
+  xlgr?: string;
+
+  @IsOptional()
+  @IsString()
+  nro?: string;
+
+  @IsOptional()
+  @IsString()
+  xcpl?: string;
+
+  @IsOptional()
+  @IsString()
+  xbairro?: string;
+
+  @IsOptional()
+  @IsInt()
+  cmun?: number;
+
+  @IsOptional()
+  @IsString()
+  xmun?: string;
+
+  @IsOptional()
+  @IsString()
+  uf?: string;
+
+  @IsOptional()
+  @IsString()
+  cep?: string;
+
+  @IsOptional()
+  @IsString()
+  cpais?: string;
+
+  @IsOptional()
+  @IsString()
+  xpais?: string;
+
+  @IsOptional()
+  @IsString()
+  fone?: string;
+
+  @IsOptional()
+  @IsString()
+  ie?: string;
+
+  @IsOptional()
+  @IsString()
+  iest?: string;
+
+  @IsOptional()
+  @IsString()
+  im?: string;
+
+  @IsOptional()
+  @IsString()
+  cnae?: string;
+
+  @IsOptional()
+  @IsInt()
+  crt?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  ativaReformaTributaria?: boolean;
+
+  @IsOptional()
+  dataInicioReformaTributaria?: Date;
 }

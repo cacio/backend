@@ -6,6 +6,10 @@ import { ProdutoService } from '../produto/produto.service';
 import { CondicoesPagamentoService } from '../condicoes-pagamento/condicoes-pagamento.service';
 import { CfopService } from '../cfop/cfop.service';
 import { ManifestoService } from '../manifesto/manifesto.service';
+import { NfeService } from '../nfe/nfe.service';
+import { NfeprodutosService } from '../nfeprodutos/nfeprodutos.service';
+import { DuplicatasService } from '../duplicatas/duplicatas.service';
+import { NfeeventosService } from '../nfeeventos/nfeeventos.service';
 import {
     AsyncPushDto,
     ChangesDto,
@@ -28,6 +32,10 @@ export class AsyncService {
         private readonly condicoesPagamento: CondicoesPagamentoService,
         private readonly cfop: CfopService,
         private readonly ManifestoService: ManifestoService,
+        private readonly nfe:NfeService,
+        private readonly nfeProdutos:NfeprodutosService,
+        private readonly duplicatas:DuplicatasService,
+        private readonly eventos:NfeeventosService
     ) { }
 
     async AsyncPull(lastPulledVersion: string, cnpj: string, codrepre: string) {
@@ -73,6 +81,34 @@ export class AsyncService {
             deleted: [],
         };
 
+        const nfeResponse = await this.nfe.ListaNfeCredenciadas(dataFormatted, cnpj, codrepre);
+        const nfe :{ created: any[]; updated: any[]; deleted: string[] } = {
+            created: Array.isArray(nfeResponse) ? nfeResponse : [],
+            updated: [],
+            deleted: [],
+        };
+
+        const nfeProdutoResponse = await this.nfeProdutos.ListaNfeProdutosCriados(dataFormatted, cnpj, codrepre);
+        const nfe_produtos :{ created: any[]; updated: any[]; deleted: string[] } = {
+            created: Array.isArray(nfeProdutoResponse) ? nfeProdutoResponse : [],
+            updated: [],
+            deleted: [],
+        };
+
+        const duplicataResponse = await this.duplicatas.ListaDuplicataCriadas(dataFormatted, cnpj, codrepre);
+        const tab_duplicata :{ created: any[]; updated: any[]; deleted: string[] } = {
+            created: Array.isArray(duplicataResponse) ? duplicataResponse : [],
+            updated: [],
+            deleted: [],
+        };
+
+        const eventosResponse = await this.eventos.ListaEventosCriados(dataFormatted, cnpj, codrepre);
+        const nfe_evento :{ created: any[]; updated: any[]; deleted: string[] } = {
+            created: Array.isArray(eventosResponse) ? eventosResponse : [],
+            updated: [],
+            deleted: [],
+        };
+
         return {
             latestVersion: Date.now(),
             changes: {
@@ -81,6 +117,10 @@ export class AsyncService {
                 condicoespagamento,
                 cfop_natura,
                 tb_manifestos,
+                nfe,
+                nfe_produtos,
+                tab_duplicata,
+                nfe_evento
             },
         };
     }

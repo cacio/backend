@@ -656,18 +656,18 @@ export class SpedNfeTransmissorService {
                                         destinatarioEmail: clienteDest.email,
                                         xmlAutorizado: nfeProc, // O XML completo e autorizado
                                         empresaNome: empresa.xnome,
-                                        numeroNota: Number(transmissao.nfe.nfe_numeracao),
+                                        numeroNota: Number(transmissao.nfe.nfe_codigo),
                                         serieNota: transmissao.nfe.nfe_serie,
                                         idempre: empresa.id,
                                     });
                                     retEmail.push({ email: clienteDest.email, status: 'enviado' });
                                 } else {
-                                    console.warn(`NF-e ${transmissao.nfe.nfe_numeracao} autorizada, mas o cliente não possui e-mail cadastrado.`);
+                                    console.warn(`NF-e ${transmissao.nfe.nfe_codigo} autorizada, mas o cliente não possui e-mail cadastrado.`);
                                     retEmail.push({ email: '', status: 'não enviado - sem e-mail cadastrado' });
                                 }
                             } catch (emailError) {
                                 // Logar o erro de e-mail mas não interromper o fluxo principal
-                                console.error(`ERRO AO ENVIAR E-MAIL da NF-e ${transmissao.nfe.nfe_numeracao}:`, emailError.message);
+                                console.error(`ERRO AO ENVIAR E-MAIL da NF-e ${transmissao.nfe.nfe_codigo}:`, emailError.message);
                                 // Você pode adicionar o erro ao objeto de resultado se desejar
                                 // resultados[resultados.length - 1].erro += ` | Falha no envio de e-mail: ${emailError.message}`;
                                 retEmail.push({ email: clienteDest?.email || '', status: 'erro ao enviar - ' + (emailError.message || emailError) });
