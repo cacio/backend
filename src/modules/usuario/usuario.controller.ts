@@ -1,6 +1,6 @@
 import { Body, Controller, Param, Post, Get, Patch, Delete, UseGuards } from '@nestjs/common';
 import { UsuarioService } from './usuario.service';
-import { UsuarioDTO, UsuarioUpdateDTO, VincularEmpresasDTO } from './usuario.dto';
+import { UsuarioDTO, UsuarioUpdateDTO, VincularEmpresasDTO,UpdateUsuarioDto,CreateUsuarioDto } from './usuario.dto';
 import { AuthGuard } from '../auth/auth.guard';
 
 @Controller('usuario')
@@ -9,8 +9,8 @@ export class UsuarioController {
   constructor(private readonly usuarioService: UsuarioService) { }
 
   @Post(':cnpj')
-  async create(@Body() data: UsuarioDTO, @Param('cnpj') cnpj: string) {
-    return this.usuarioService.create(data, cnpj);
+  async create(@Body() data: CreateUsuarioDto, @Param('cnpj') cnpj: string) {
+    return this.usuarioService.create(cnpj, data);
   }
 
   @Get()
@@ -26,6 +26,11 @@ export class UsuarioController {
   @Post('update/:cnpj/:id')
   async Userupdate(@Body() data: UsuarioUpdateDTO, @Param('id') id: string, @Param('cnpj') cnpj: string) {
     return this.usuarioService.updateUser(id, data, cnpj);
+  }
+
+  @Post('updateUser/:cnpj/:id')
+  async update(@Body() data: UpdateUsuarioDto, @Param('id') id: string, @Param('cnpj') cnpj: string) {
+    return this.usuarioService.update(id, cnpj, data);
   }
 
   @Patch(':id/status')

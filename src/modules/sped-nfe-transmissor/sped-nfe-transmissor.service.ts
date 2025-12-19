@@ -45,7 +45,7 @@ export class SpedNfeTransmissorService {
 
             let eTools = new Tools({
                 mod: '55',
-                //xmllint: xmllintPath, // path to xmllint para local windows
+               // xmllint: xmllintPath, // path to xmllint para local windows
                 xmllint: '/usr/bin/xmllint', // path to xmllint para linux
                 UF: empresa.uf,
                 tpAmb: 2,
@@ -87,7 +87,8 @@ export class SpedNfeTransmissorService {
                         where: {
                             numero_nfe: transmissao.nfe.id,
                             codigo_nfe: transmissao.nfe.nfe_codigo,
-                            cstat: '100' // NF-e autorizada
+                            cstat: '100', // NF-e autorizada
+                            serie:transmissao.nfe.nfe_serie
                         }
                     });
 
@@ -151,7 +152,7 @@ export class SpedNfeTransmissorService {
                     const timeZone = 'America/Sao_Paulo';
                     const formatString = "yyyy-MM-dd'T'HH:mm:ssXXX";
                     const dataemissao = formatInTimeZone(transmissao.nfe.nfe_dtemis, timeZone, formatString);
-                    console.log("data emissão3: ", dataemissao);
+                    console.log("numeracao: ", transmissao.nfe.nfe_numeracao);
 
                     NFe.tagIde({
                         cUF: String(empresa.cmun).substring(0, 2),
@@ -266,7 +267,7 @@ export class SpedNfeTransmissorService {
                             //console.log(dadosmanifesto,' - ',transmissao.nfe.nfe_manifesto,' - ',dadosproduto.cprod);
                             const numeromanifesto = await this.somenteNumeros(transmissao.nfe.nfe_manifesto.substring(0, 15) || '');
                             return limparCamposZero({
-                                cProd: "PROD" + dadosproduto.cprod,
+                                cProd: String(dadosproduto.cprod).trim(),
                                 cEAN: dadosproduto?.cean == '0' || dadosproduto?.cean == '' ? 'SEM GTIN' : dadosproduto?.cean,
                                 xProd: dadosproduto?.xprod ?? '',
                                 NCM: String(dadosproduto?.ncm ?? '').padStart(8, "0"),

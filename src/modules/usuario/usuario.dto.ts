@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString,IsEnum,IsOptional,IsArray } from "class-validator";
+import { IsNotEmpty, IsString,IsEnum,IsOptional,IsArray,IsNumber, Min,IsEmail } from "class-validator";
 
 export enum usuario_user_ativo {
     S = 'S',
@@ -37,6 +37,55 @@ export class UsuarioDTO {
 
 };
 
+export class CreateUsuarioDto {
+  @IsString()
+  nome: string;
+
+  @IsEmail()
+  email: string;
+
+  @IsString()
+  @IsOptional()
+  login?: string;
+
+  @IsString()
+  passwd: string;
+
+  @IsString()
+  @IsOptional()
+  codrepre?: string;
+
+  // Campos de configuração
+  @IsString()
+  @IsOptional()
+  serie?: string;
+
+  @IsString()
+  @IsOptional()
+  cfop?: string;
+
+  @IsNumber()
+  @IsOptional()
+  @Min(1)
+  numeroviaempressao?: number;
+
+  @IsString()
+  @IsOptional()
+  codproxnfe?: string;
+
+  @IsString()
+  @IsOptional()
+  idemp?: string; // ID da empresa para configuração
+
+  @IsNumber()
+  @IsOptional()
+  percpesoproduto?: number;
+
+  @IsNumber()
+  @IsOptional()
+  percprecoproduto?: number;
+}
+
 export class UsuarioUpdateDTO {
   @IsOptional()
   @IsString()
@@ -63,6 +112,57 @@ export class UsuarioUpdateDTO {
   codrepre?: string;
 }
 
+export class UpdateUsuarioDto {
+  @IsString()
+  @IsOptional()
+  nome?: string;
+
+  @IsEmail()
+  @IsOptional()
+  email?: string;
+
+  @IsString()
+  @IsOptional()
+  login?: string;
+
+  @IsString()
+  @IsOptional()
+  passwd?: string;
+
+  @IsString()
+  @IsOptional()
+  codrepre?: string;
+
+  // Campos de configuração
+  @IsString()
+  @IsOptional()
+  serie?: string;
+
+  @IsString()
+  @IsOptional()
+  cfop?: string;
+
+  @IsNumber()
+  @IsOptional()
+  @Min(1)
+  numeroviaempressao?: number;
+
+  @IsString()
+  @IsOptional()
+  codproxnfe?: string;
+
+  @IsString()
+  @IsOptional()
+  idemp?: string;
+
+  @IsNumber()
+  @IsOptional()
+  percpesoproduto?: number;
+
+  @IsNumber()
+  @IsOptional()
+  percprecoproduto?: number;
+}
 export class VincularEmpresasDTO {
   @IsArray()
   @IsString({ each: true })

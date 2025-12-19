@@ -135,7 +135,7 @@ export class AsyncService {
         for (const item of changes.created || []) {
             let data = stripSyncFields(item);
             if (fixTypesFn) data = await fixTypesFn(data);
-
+            console.log('Processing created item:', data);
             const where = { [uniqueKey]: (item as any)[uniqueKey] };
             const exists = await model.findUnique({ where });
 

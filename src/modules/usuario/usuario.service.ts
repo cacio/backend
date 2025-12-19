@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { UsuarioDTO, UsuarioUpdateDTO } from './usuario.dto';
+import { UsuarioDTO, UsuarioUpdateDTO, CreateUsuarioDto, UpdateUsuarioDto } from './usuario.dto';
 import { PrismaService } from 'src/datrabase/PrismaService';
 import { hashPassword } from '../auth/utils/bcrypt.utils';
 
@@ -10,86 +10,163 @@ export class UsuarioService {
 
     constructor(private prisma: PrismaService) { }
 
-    async create(users: UsuarioDTO, cnpj: string) {
-
-        const getEmpresa = await this.prisma.empresa.findFirst({
-            where: {
-                cnpj
-            }
+    async create(cnpj: string, data: CreateUsuarioDto) {
+        // Verificar se empresa existe
+        const empresa = await this.prisma.empresa.findFirst({
+            where: { cnpj },
         });
 
-        const userExists = await this.prisma.usuario.findFirst({
-            where: {
-                email: users.email,
-            }
-        });
-
-        if (userExists) {
-            throw new Error("Usuario ja exite");
+        if (!empresa) {
+            throw new NotFoundException('Empresa não encontrada');
         }
 
-        const passwd = await hashPassword(users.passwd);
-        const data = { ...users, passwd };
+        // Hash da senha
+        const hashedPassword = await hashPassword(data.passwd);
 
-        const user = await this.prisma.usuario.create({
-            data,
-        });
-
-        await this.prisma.usuarioEmpresa.create({
+        // Criar usuário
+        const usuario = await this.prisma.usuario.create({
             data: {
-                usuarioId: user.id,
-                empresaId: getEmpresa.id,
+                nome: data.nome,
+                email: data.email,
+                login: data.login,
+                passwd: hashedPassword,
+                codrepre: data.codrepre,
+                user_ativo: 'S',
             },
         });
 
-        return user;
+        // Vincular à empresa
+        await this.prisma.usuarioEmpresa.create({
+            data: {
+                usuarioId: usuario.id,
+                empresaId: empresa.id,
+            },
+        });
+
+        // Criar configuração se houver dados
+        if (this.hasConfigData(data)) {
+            await this.prisma.usuarioConfiguracao.create({
+                data: {
+                    usuarioId: usuario.id,
+                    serie: data.serie,
+                    cfop: data.cfop,
+                    numeroviaempressao: data.numeroviaempressao,
+                    codproxnfe: data.codproxnfe,
+                    idemp: data.idemp || empresa.id,
+                    percpesoproduto: data.percpesoproduto,
+                    percprecoproduto: data.percprecoproduto,
+                },
+            });
+        }
+
+        return {
+            success: true,
+            message: 'Usuário criado com sucesso',
+            data: usuario,
+        };
     }
 
-    async findAll() {
-        try {
-            const usuarios = await this.prisma.usuario.findMany({
-                select: {
-                    id: true,
-                    nome: true,
-                    email: true,
-                    login: true,
-                    codrepre: true,
-                    user_ativo: true,
-                    created_at: true,
-                    empresas: {
-                        include: {
-                            empresa: {
-                                select: {
-                                    id: true,
-                                    xnome: true,
-                                    xfant: true,
-                                    cnpj: true
-                                }
-                            }
-                        }
-                    },
-                    _count: {
-                        select: {
-                            empresas: true
-                        }
-                    }
-                },
-                orderBy: {
-                    nome: 'asc'
-                }
+    async update(id: string, cnpj: string, data: UpdateUsuarioDto) {
+        const usuario = await this.prisma.usuario.findUnique({
+            where: { id },
+        });
+
+        if (!usuario) {
+            throw new NotFoundException('Usuário não encontrado');
+        }
+
+        const updateData: any = {
+            nome: data.nome,
+            email: data.email,
+            login: data.login,
+            codrepre: data.codrepre,
+        };
+
+        // Atualizar senha se fornecida
+        if (data.passwd) {
+            updateData.passwd = await hashPassword(data.passwd);
+        }
+
+        await this.prisma.usuario.update({
+            where: { id },
+            data: updateData,
+        });
+        //console.log('Config Data:', data);
+
+        // Atualizar ou criar configuração
+        if (this.hasConfigData(data)) {
+            const configExistente = await this.prisma.usuarioConfiguracao.findFirst({
+                where: { usuarioId: id },
             });
 
-            return {
-                success: true,
-                data: usuarios
+            const configData = {
+                serie: data.serie,
+                cfop: data.cfop,
+                numeroviaempressao: data.numeroviaempressao,
+                codproxnfe: data.codproxnfe,
+                idemp: data.idemp,
+                percpesoproduto: data.percpesoproduto,
+                percprecoproduto: data.percprecoproduto,
             };
-        } catch (error) {
-            return {
-                success: false,
-                message: error.message
-            };
+
+
+            if (configExistente) {
+                await this.prisma.usuarioConfiguracao.update({
+                    where: { id: configExistente.id },
+                    data: configData,
+                });
+            } else {
+                await this.prisma.usuarioConfiguracao.create({
+                    data: {
+                        usuarioId: id,
+                        ...configData,
+                    },
+                });
+            }
         }
+
+        return {
+            success: true,
+            message: 'Usuário atualizado com sucesso',
+        };
     }
+
+     async findAll() {
+    const usuarios = await this.prisma.usuario.findMany({
+      include: {
+        empresas: {
+          include: {
+            empresa: {
+              select: {
+                id: true,
+                xnome: true,
+                cnpj: true,
+              },
+            },
+          },
+        },
+        configuracao: {
+          select: {
+            serie: true,
+            cfop: true,
+            numeroviaempressao: true,
+            codproxnfe: true,
+            percpesoproduto: true,
+            percprecoproduto: true,
+          },
+          take: 1,
+        },
+      },
+    });
+
+    return {
+      success: true,
+      data: usuarios.map(usuario => ({
+        ...usuario,
+        configuracao: usuario.configuracao[0] || null,
+      })),
+    };
+  }
 
     async findOneById(id: string) {
         try {
@@ -324,5 +401,17 @@ export class UsuarioService {
                 message: error.message
             };
         }
+    }
+
+    private hasConfigData(data: CreateUsuarioDto | UpdateUsuarioDto): boolean {
+        return !!(
+            data.serie ||
+            data.cfop ||
+            data.numeroviaempressao ||
+            data.codproxnfe ||
+            data.idemp ||
+            data.percpesoproduto ||
+            data.percprecoproduto
+        );
     }
 }

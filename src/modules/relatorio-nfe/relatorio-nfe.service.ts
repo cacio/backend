@@ -40,6 +40,7 @@ export class RelatorioNfeService {
       // ------------------------------------------
       if (empresaId) {
         where.idemp = empresaId;
+        console.log('Filtrando por empresa:', empresaId);
       }
 
       // ------------------------------------------
@@ -56,20 +57,26 @@ export class RelatorioNfeService {
       //  FILTRAR EMPRESAS POR USUÁRIO
       // ------------------------------------------
       if (usuarioId) {
+        console.log('Filtrando por usuário:', usuarioId);
         const empresasDoUsuario = await this.prisma.usuarioEmpresa.findMany({
           where: { usuarioId },
           select: { empresaId: true },
         });
 
+        const getususario = await this.prisma.usuario.findUnique({
+          where: { id: usuarioId },
+          //select: { isAdmin: true },
+          include:{configuracao: true}
+        });
         const empresaIds = empresasDoUsuario.map((e) => e.empresaId);
 
-        if (empresaIds.length === 0) {
-          return {
-            success: true,
-            data: [],
-            pagination: { total: 0, page, limit, totalPages: 0 },
-          };
-        }
+        // if (empresaIds.length === 0) {
+        //   return {
+        //     success: true,
+        //     data: [],
+        //     pagination: { total: 0, page, limit, totalPages: 0 },
+        //   };
+        // }
 
         // Se já tinha empresaId no filtro, faz interseção
         if (empresaId) {
@@ -83,10 +90,16 @@ export class RelatorioNfeService {
         } else {
           where.idemp = { in: empresaIds };
         }
+
+        const serieUsuario = getususario.configuracao[0].serie ?? 0;
+        if(serieUsuario !== 0){
+          where.nfe_serie =getususario.configuracao[0].serie ?? 0
+        }
+
       }
 
       const skip = (page - 1) * limit;
-
+      console.log("where: ",where);
       /**
        * =============================================
        *   BUSCA PRINCIPAL
@@ -113,7 +126,7 @@ export class RelatorioNfeService {
         }),
         this.prisma.nfe.count({ where }),
       ]);
-
+      //console.log(nfes);
       /**
        * =============================================
        *   FORMATAÇÃO DO RESULTADO
@@ -153,7 +166,7 @@ export class RelatorioNfeService {
 
           return {
             id: nfe.id,
-            numero: nfe.nfe_numeracao,
+            numero: nfe.nfe_codigo,
             serie: nfe.nfe_serie,
             dataEmissao: nfe.nfe_dtemis,
             valorTotal: nfe.nfe_total_nota,
