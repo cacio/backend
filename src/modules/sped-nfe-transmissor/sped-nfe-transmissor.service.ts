@@ -107,9 +107,9 @@ export class SpedNfeTransmissorService {
                                 xml: jaExiste.caminho_xml,
                             },
                         ];
-
+                        const nomepasta = await this.pegarTresPrimeirosSemEspaco(empresa.xnome);
                         const resultado = await this.manifestoFtpService.enviarNotaParaSistemaLegado(
-                            'prodasiq',
+                            nomepasta.toLowerCase(),
                             notaPayload,
                             );
 
@@ -702,9 +702,9 @@ export class SpedNfeTransmissorService {
                                     xml: nfeProc,
                                 },
                             ];
-
+                            const nomepasta = await this.pegarTresPrimeirosSemEspaco(empresa.xnome);
                             const resultado = await this.manifestoFtpService.enviarNotaParaSistemaLegado(
-                                'prodasiq',
+                                nomepasta.toLowerCase(),
                                 notaPayload,
                                 );
 
@@ -876,9 +876,9 @@ export class SpedNfeTransmissorService {
                         xml: String(xmlCancelado),
                     },
                 ];
-
+                const nomepasta = await this.pegarTresPrimeirosSemEspaco(empresa.xnome);
                 const resultado = await this.manifestoFtpService.enviarNotaParaSistemaLegado(
-                    'prodasiq',
+                    nomepasta.toLowerCase(),
                     notaPayload,
                     );
 
@@ -952,8 +952,9 @@ export class SpedNfeTransmissorService {
                     },
                 ];
 
+                const nomepasta = await this.pegarTresPrimeirosSemEspaco(empresa.xnome);
                 const resultado = await this.manifestoFtpService.enviarNotaParaSistemaLegado(
-                    'prodasiq',
+                    nomepasta.toLowerCase(),
                     notaPayload,
                     );
 
@@ -1466,5 +1467,14 @@ export class SpedNfeTransmissorService {
 
     return xmlCancelado;
   }
+
+  async pegarTresPrimeirosSemEspaco(texto:String): Promise<string> {
+    if (!texto) return "";
+
+    return texto
+        .replace(/\s+/g, "")   // remove todos os espaços
+        .slice(0, 3)           // pega os 3 primeiros caracteres
+        .toLowerCase();        // converte para minúsculo
+    }
 
 }
