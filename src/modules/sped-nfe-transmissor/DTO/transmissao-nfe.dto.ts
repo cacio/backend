@@ -341,6 +341,9 @@ export class CancelamentoDto{
 
   @IsString()
   codigo_nfe:string;
+
+  @IsString()
+  codrepresentante?:string;
 }
 
 export class CartaCorrecaoDto{

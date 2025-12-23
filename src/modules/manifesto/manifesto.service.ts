@@ -1,10 +1,14 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { PrismaService } from 'src/datrabase/PrismaService';
+import { ManifestoFtpService } from '../manifesto-ftp/manifesto-ftp.service';
 import { CreateManifestoDto } from './DTO/manifesto.dto';
 import * as moment from 'moment-timezone';
 @Injectable()
 export class ManifestoService {
-    constructor(private prisma: PrismaService) { }
+    constructor(
+        private prisma: PrismaService,
+        private manifestoFtpService: ManifestoFtpService
+    ) { }
 
     async create(dados: CreateManifestoDto, cnpj: string) {
 
@@ -96,6 +100,40 @@ export class ManifestoService {
          const empresa = await this.prisma.empresa.findFirst({
             where: { cnpj },
         });
+
+        const ManifestLegado = await this.manifestoFtpService.buscarManifestosDoSistemaLegado('prodasiq', codrepre);
+
+        if(ManifestLegado.length > 0){
+            for(const manifesto of ManifestLegado){
+                const existingManifesto = await this.prisma.tb_manifestos.findFirst({
+                    where: {
+                        n_manifesto: manifesto.n_manifesto,
+                        n_item: Number(manifesto.n_item),
+                        cod_produto: manifesto.cod_produto,
+                        idemp: empresa.id,
+                    },
+                });
+
+                if (!existingManifesto) {
+                    await this.prisma.tb_manifestos.create({
+                        data: {
+                            data: moment(manifesto.data).format('YYYY-MM-DD[T]HH:mm:ss.SSS[Z]',),
+                            n_manifesto: manifesto.n_manifesto,
+                            n_item: Number(manifesto.n_item),
+                            cod_produto: manifesto.cod_produto,
+                            qtd_prod: manifesto.qtd_prod,
+                            vlr_unit: manifesto.vlr_unit,
+                            vBCSTRet: Number(manifesto.fatorBcIcmsRet),
+                            vICMSSTRet: Number(manifesto.fatorVlrIcmsRet),
+                            chave_acesso: manifesto.chave_acesso,
+                            codrepresentante: codrepre,
+                            idemp:empresa.id
+                        }
+                    });
+                }
+            }
+        }
+        console.log(ManifestLegado);
 
         const dataManifesto = await this.prisma.tb_manifestos.findMany({
              where: {

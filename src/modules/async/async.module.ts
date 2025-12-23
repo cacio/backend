@@ -10,8 +10,9 @@ import { NfeService } from '../nfe/nfe.service';
 import { NfeprodutosService } from '../nfeprodutos/nfeprodutos.service';
 import { DuplicatasService } from '../duplicatas/duplicatas.service';
 import { NfeeventosService } from '../nfeeventos/nfeeventos.service';
+import { ManifestoFtpService } from '../manifesto-ftp/manifesto-ftp.service';
 @Module({
   controllers: [AsyncController],
-  providers: [AsyncService,FornecedorService,ProdutoService,CondicoesPagamentoService,CfopService,ManifestoService,NfeService,NfeprodutosService,DuplicatasService,NfeeventosService],
+  providers: [AsyncService,FornecedorService,ProdutoService,CondicoesPagamentoService,CfopService,ManifestoService,NfeService,NfeprodutosService,DuplicatasService,NfeeventosService,ManifestoFtpService],
 })
 export class AsyncModule {}

@@ -20,9 +20,10 @@ import { NfeeventosModule } from './modules/nfeeventos/nfeeventos.module';
 import { RelatorioNfeModule } from './modules/relatorio-nfe/relatorio-nfe.module';
 import { ConfiguracaoNfeModule } from './modules/configuracao-nfe/configuracao-nfe.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { ManifestoFtpModule } from './modules/manifesto-ftp/manifesto-ftp.module';
 
 @Module({
-  imports: [DatabaseModule,UsuarioModule, AuthModule, AsyncModule, FornecedorModule, ProdutoModule, EmpresaModule, CondicoesPagamentoModule, CfopModule, ManifestoModule, SpedNfeTransmissorModule, ConfiguracaoModule, ConfiguracaoUsuarioModule, MailModule, NfeModule, NfeprodutosModule, DuplicatasModule, NfeeventosModule, RelatorioNfeModule, ConfiguracaoNfeModule, DashboardModule],
+  imports: [DatabaseModule,UsuarioModule, AuthModule, AsyncModule, FornecedorModule, ProdutoModule, EmpresaModule, CondicoesPagamentoModule, CfopModule, ManifestoModule, SpedNfeTransmissorModule, ConfiguracaoModule, ConfiguracaoUsuarioModule, MailModule, NfeModule, NfeprodutosModule, DuplicatasModule, NfeeventosModule, RelatorioNfeModule, ConfiguracaoNfeModule, DashboardModule, ManifestoFtpModule],
   controllers: [],
   providers: [],
 })

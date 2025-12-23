@@ -131,11 +131,13 @@ export class AsyncService {
         uniqueKey: keyof T,
         fixTypesFn?: (item: Omit<T, '_status' | '_changed'>) => Promise<any> | any,
     ): Promise<void> {
+
+        //console.log(model);
         // Criar registros ou atualizar se já existir
         for (const item of changes.created || []) {
             let data = stripSyncFields(item);
             if (fixTypesFn) data = await fixTypesFn(data);
-            console.log('Processing created item:', data);
+            //console.log('Processing created item:', data);
             const where = { [uniqueKey]: (item as any)[uniqueKey] };
             const exists = await model.findUnique({ where });
 
@@ -320,8 +322,8 @@ export class AsyncService {
     fixTypesNfeEvento = async (
         item: Omit<NfeEventoDto, '_status' | '_changed'>,
     ): Promise<any> => {
-        const clean = removeFields(item, ['id_evento', 'id_nfe', 'idemp','caminho_xml']); // ou id_evento se for esse o nome
-
+        const clean = removeFields(item, ['id_evento', 'id_nfe', 'digVal', 'idemp','caminho_xml']); // ou id_evento se for esse o nome
+        //console.log(item);
         const formatted = {
             ...clean,
             nfe: {

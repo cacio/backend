@@ -1,22 +1,28 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { PrismaService } from 'src/datrabase/PrismaService';
+import { ManifestoFtpService,NotaFiscalPayload } from '../manifesto-ftp/manifesto-ftp.service';
 import { Make, Tools, xml2json, Complements, UF2cUF } from 'node-sped-nfe-custom';
 import { join } from 'path'
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
+import * as xmljs from 'xml-js';
 
 import { TransmissaoNfeDto, CancelamentoDto, CartaCorrecaoDto, InutilizaDto } from './DTO/transmissao-nfe.dto';
 import { formatInTimeZone, format } from 'date-fns-tz';
 import { limparCamposZero } from '../../utils/limpar-campos-zero';
 import { MailService } from '../mail/mail.service';
 import { DANFe } from 'node-sped-pdf';
+const EVT_CANCELA = '110111';
+const EVT_CANCELASUBSTITUICAO = '110112';
+
 // @ts-ignore: No type declarations available for 'node-sped-pdf'
 @Injectable()
 export class SpedNfeTransmissorService {
     constructor(
         private prisma: PrismaService,
-        private mailService: MailService
+        private mailService: MailService,
+        private readonly manifestoFtpService: ManifestoFtpService
     ) { }
 
     async transmitirNFE(dadosNFE: TransmissaoNfeDto[], cnpj: string) {
@@ -45,7 +51,7 @@ export class SpedNfeTransmissorService {
 
             let eTools = new Tools({
                 mod: '55',
-               // xmllint: xmllintPath, // path to xmllint para local windows
+                //xmllint: xmllintPath, // path to xmllint para local windows
                 xmllint: '/usr/bin/xmllint', // path to xmllint para linux
                 UF: empresa.uf,
                 tpAmb: 2,
@@ -93,6 +99,20 @@ export class SpedNfeTransmissorService {
                     });
 
                     if (jaExiste) {
+                        // mandar a nota para o sistema legado
+                        const notaPayload: NotaFiscalPayload[] = [
+                            {
+                                series: transmissao.manifestos[0].codrepresentante,
+                                chave_acesso: jaExiste?.chave_acesso,
+                                xml: jaExiste.caminho_xml,
+                            },
+                        ];
+
+                        const resultado = await this.manifestoFtpService.enviarNotaParaSistemaLegado(
+                            'prodasiq',
+                            notaPayload,
+                            );
+
                         const retornoCompleto = {
                             retEnviNFe: {
                                 tpAmb: empresa.ConfiguracaoNFe.tpAmb,
@@ -673,6 +693,21 @@ export class SpedNfeTransmissorService {
                                 // resultados[resultados.length - 1].erro += ` | Falha no envio de e-mail: ${emailError.message}`;
                                 retEmail.push({ email: clienteDest?.email || '', status: 'erro ao enviar - ' + (emailError.message || emailError) });
                             }
+
+                            // mandar a nota para o sistema legado
+                            const notaPayload: NotaFiscalPayload[] = [
+                                {
+                                    series: chaveManifeto.codrepresentante,
+                                    chave_acesso: infProt?.chNFe,
+                                    xml: nfeProc,
+                                },
+                            ];
+
+                            const resultado = await this.manifestoFtpService.enviarNotaParaSistemaLegado(
+                                'prodasiq',
+                                notaPayload,
+                                );
+
                         } else {
                             const infProt = (retornoObj as any)?.retEnviNFe?.protNFe?.infProt;
                             const idevento = await this.prisma.nfe_evento.create({
@@ -698,6 +733,7 @@ export class SpedNfeTransmissorService {
                         resultados.push({
                             nfe_codigo: transmissao.nfe.nfe_codigo,
                             idnfe: transmissao.nfe.id,
+                            serie: transmissao.nfe.nfe_serie,
                             xml: nfeProc || xmlAssinado,
                             ideventos: idevent,
                             retorno: jsonRetorno,
@@ -712,6 +748,7 @@ export class SpedNfeTransmissorService {
                         resultados.push({
                             nfe_codigo: transmissao.nfe.nfe_codigo,
                             idnfe: transmissao.nfe.id,
+                            serie: transmissao.nfe.nfe_serie,
                             xml: xmlGerado,
                             retorno: resultadoEnvio,
                             status: 'erro',
@@ -811,11 +848,40 @@ export class SpedNfeTransmissorService {
                 where: {
                     numero_nfe: dados.numero_nfe,
                     codigo_nfe: dados.codigo_nfe,
-                    cstat: '101'
+                    cstat: '101',
+                    serie: dados.serie,
                 }
             });
 
+              const xmlAutorizado = await this.prisma.nfe_evento.findFirst({
+                where: {
+                    numero_nfe: dados.numero_nfe,
+                    codigo_nfe: dados.codigo_nfe,
+                    cstat: '100',
+                    serie: dados.serie,
+                }
+            });
+            //console.log(xmlAutorizado);
             if (jaExiste) {
+
+                const xmlCancelado =  await this.gerarXmlCancelado(
+                    xmlAutorizado.caminho_xml,
+                    jaExiste.caminho_xml,
+                );
+
+                const notaPayload: NotaFiscalPayload[] = [
+                    {
+                        series: dados.codrepresentante,
+                        chave_acesso: jaExiste.chave_acesso,
+                        xml: String(xmlCancelado),
+                    },
+                ];
+
+                const resultado = await this.manifestoFtpService.enviarNotaParaSistemaLegado(
+                    'prodasiq',
+                    notaPayload,
+                    );
+
                 return {
                     sucesso: true,
                     cStat: jaExiste.cstat,
@@ -872,6 +938,24 @@ export class SpedNfeTransmissorService {
                         serie: dados.serie,
                     },
                 });
+
+                const xmlCancelado = await this.gerarXmlCancelado(
+                    xmlAutorizado.caminho_xml,
+                    xmlProcEvento,
+                );
+
+                const notaPayload: NotaFiscalPayload[] = [
+                    {
+                        series: dados.codrepresentante,
+                        chave_acesso: dados.chNFe,
+                        xml: String(xmlCancelado),
+                    },
+                ];
+
+                const resultado = await this.manifestoFtpService.enviarNotaParaSistemaLegado(
+                    'prodasiq',
+                    notaPayload,
+                    );
 
                 const idevent = idevento.id;
 
@@ -1310,5 +1394,77 @@ export class SpedNfeTransmissorService {
             throw error;
         }
     }
+
+    /**
+   * Modifica o XML de uma NFe autorizada para refletir o seu cancelamento.
+   * @param nfeXml - O conteúdo XML da NFe originalmente autorizada.
+   * @param cancelamentoXml - O conteúdo XML do evento de cancelamento (retEvento).
+   * @returns O XML da NFe modificado para o estado de "cancelada".
+   */
+  async gerarXmlCancelado(nfeXml: string, cancelamentoXml: string): Promise<string> {
+
+    //console.log(nfeXml);
+    // Opções para a conversão XML <-> JSON
+    const options: xmljs.Options.JS2XML & xmljs.Options.XML2JS = {
+      compact: true, // Formato mais fácil de trabalhar
+      ignoreComment: true,
+      spaces: 4,
+    };
+
+    // 1. Converte ambos os XMLs para objetos JSON
+    const nfeObj = xmljs.xml2js(nfeXml, { compact: true }) as any;
+    const cancelamentoObj = xmljs.xml2js(cancelamentoXml, { compact: true }) as any;
+
+    // 2. Extrai o protocolo da NFe original e sua chave
+    // O caminho no JSON compacto é nfeProc.protNFe
+    const protNFe = nfeObj['nfeProc']['protNFe'];
+    if (!protNFe) {
+      throw new Error('XML da NFe não parece estar protocolado (falta a tag <protNFe>).');
+    }
+    const chaveNFeOriginal = protNFe['infProt']['chNFe']._text;
+
+    // 3. Itera sobre os eventos de cancelamento
+    // O PHP usa `getElementsByTagName`, aqui vamos navegar pelo objeto JSON
+    const eventos = Array.isArray(cancelamentoObj['procEventoNFe']['retEvento'])
+        ? cancelamentoObj['procEventoNFe']['retEvento']
+        : [cancelamentoObj['procEventoNFe']['retEvento']];
+
+    let cancelamentoHomologado = false;
+
+    for (const evento of eventos) {
+      const infEvento = evento['infEvento'];
+      const cStat = infEvento['cStat']._text;
+      const tpEvento = infEvento['tpEvento']._text;
+      const chaveEvento = infEvento['chNFe']._text;
+
+      // 4. Valida se o evento é um cancelamento bem-sucedido para esta NFe
+      const isStatusCancelamento = ['135', '136', '155'].includes(cStat);
+      const isTipoEventoCancelamento = [EVT_CANCELA, EVT_CANCELASUBSTITUICAO].includes(tpEvento);
+
+      if (isStatusCancelamento && isTipoEventoCancelamento && chaveEvento === chaveNFeOriginal) {
+        const nProtCancelamento = infEvento['nProt']._text;
+
+        // 5. Modifica o objeto JSON da NFe original com os dados do cancelamento
+        protNFe['infProt']['cStat']._text = '101'; // Código para "Cancelamento de NF-e homologado"
+        protNFe['infProt']['xMotivo']._text = 'Cancelamento de NF-e homologado';
+        protNFe['infProt']['nProt']._text = nProtCancelamento; // Usa o protocolo do evento de cancelamento
+
+        cancelamentoHomologado = true;
+        break; // Sai do loop assim que encontrar o evento válido
+      }
+    }
+
+    if (!cancelamentoHomologado) {
+      // Se nenhum evento de cancelamento válido foi encontrado, retorna o XML original sem modificações
+      // ou lança um erro, dependendo da sua regra de negócio.
+      console.warn('Nenhum evento de cancelamento válido encontrado para a NFe. O XML não foi modificado.');
+      return nfeXml;
+    }
+
+    // 6. Converte o objeto JSON modificado de volta para XML
+    const xmlCancelado = xmljs.js2xml(nfeObj, options);
+
+    return xmlCancelado;
+  }
 
 }

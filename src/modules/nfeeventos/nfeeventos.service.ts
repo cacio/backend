@@ -43,7 +43,7 @@ export class NfeeventosService {
 
             }
         });
-
+        //console.log(eventos);
         return eventos.map(dup => ({
             id: dup.id,
             id_evento: dup.id,

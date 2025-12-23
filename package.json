@@ -27,6 +27,7 @@
     "@nestjs/platform-express": "^10.0.0",
     "@prisma/client": "^5.13.0",
     "@types/bcryptjs": "^2.4.6",
+    "axios": "^1.13.2",
     "bcrypt": "^6.0.0",
     "bcryptjs": "^2.4.3",
     "class-transformer": "^0.5.1",
@@ -41,7 +42,8 @@
     "node-sped-pdf": "^1.0.65",
     "nodemailer": "^7.0.5",
     "reflect-metadata": "^0.1.13",
-    "rxjs": "^7.8.1"
+    "rxjs": "^7.8.1",
+    "xml-js": "^1.6.11"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.0.0",
