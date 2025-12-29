@@ -4393,10 +4393,10 @@ node-releases@^2.0.13:
   resolved "https://registry.npmjs.org/node-releases/-/node-releases-2.0.13.tgz"
   integrity sha512-uYr7J37ae/ORWdZeQ1xxMJe3NtdmqMC/JZK+geofDrkLUApKRHPd18/TxtBOJ4A0/+uUIliorNrfYV6s1b02eQ==
 
-node-sped-nfe-custom@^1.2.63:
-  version "1.2.63"
-  resolved "https://registry.yarnpkg.com/node-sped-nfe-custom/-/node-sped-nfe-custom-1.2.63.tgz#de90638ca71e8df73c58dfcd46cd5dd74eddad31"
-  integrity sha512-0nv4LOmPMh959HmfhzfytQ8N12itw5QBHmuXjK5EqiSrmHSed/uDjqJsrUj8/uHKs6BFEaeTf9wj4cZBYqQMLQ==
+node-sped-nfe-custom@^1.2.64:
+  version "1.2.64"
+  resolved "https://registry.yarnpkg.com/node-sped-nfe-custom/-/node-sped-nfe-custom-1.2.64.tgz#cc0fe847b8e7920113c092e2c72cd33820a9ac67"
+  integrity sha512-0vSgAZDcXB9aNXW2hAKx/i3jgO4ZoBwrP24sE+rx1uFVRMsXmwg9nUXF4pQfXI+wX7oj21lmC33fSgJdERfC/w==
   dependencies:
     crypto "^1.0.1"
     fast-xml-parser "^4.5.1"

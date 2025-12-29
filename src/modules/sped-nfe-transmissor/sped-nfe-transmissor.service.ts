@@ -54,7 +54,7 @@ export class SpedNfeTransmissorService {
                 //xmllint: xmllintPath, // path to xmllint para local windows
                 xmllint: '/usr/bin/xmllint', // path to xmllint para linux
                 UF: empresa.uf,
-                tpAmb: 2,
+                tpAmb: empresa.ConfiguracaoNFe.tpAmb,
                 CSC: '', // Código de Segurança do Contribuinte (emissor)
                 CSCid: '', // Identificador do CSC
                 versao: '4.00',
