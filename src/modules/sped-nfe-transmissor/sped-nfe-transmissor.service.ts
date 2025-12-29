@@ -830,9 +830,10 @@ export class SpedNfeTransmissorService {
 
             const eTools = new Tools({
                 mod: '55',
-                xmllint: xmllintPath,
+                //xmllint: xmllintPath,
+                xmllint: '/usr/bin/xmllint',
                 UF: empresa.uf,
-                tpAmb: 2,
+                tpAmb: empresa.ConfiguracaoNFe.tpAmb,
                 CSC: '',
                 CSCid: '',
                 versao: '4.00',
@@ -1018,9 +1019,10 @@ export class SpedNfeTransmissorService {
 
             const eTools = new Tools({
                 mod: '55',
-                xmllint: xmllintPath,
+                //xmllint: xmllintPath,
+                xmllint: '/usr/bin/xmllint',
                 UF: empresa.uf,
-                tpAmb: 2,
+                tpAmb: empresa.ConfiguracaoNFe.tpAmb,
                 CSC: '',
                 CSCid: '',
                 versao: '4.00',
@@ -1158,9 +1160,10 @@ export class SpedNfeTransmissorService {
 
             const eTools = new Tools({
                 mod: '55',
-                xmllint: xmllintPath,
+                //xmllint: xmllintPath,
+                xmllint: '/usr/bin/xmllint',
                 UF: empresa.uf,
-                tpAmb: 2,
+                tpAmb: empresa.ConfiguracaoNFe.tpAmb,
                 CSC: '',
                 CSCid: '',
                 versao: '4.00',
