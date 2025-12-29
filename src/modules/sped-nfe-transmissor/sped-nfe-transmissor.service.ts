@@ -166,13 +166,13 @@ export class SpedNfeTransmissorService {
                         }
                     });
 
-                    console.log("data emissão: ", format(new Date(transmissao.nfe.nfe_dtemis), "yyyy-MM-dd'T'HH:mm:ssXXX", { timeZone: 'America/Sao_Paulo' }));
-                    console.log("data emissão2: ", transmissao.nfe.nfe_dtemis);
+                    //console.log("data emissão: ", format(new Date(transmissao.nfe.nfe_dtemis), "yyyy-MM-dd'T'HH:mm:ssXXX", { timeZone: 'America/Sao_Paulo' }));
+                    //console.log("data emissão2: ", transmissao.nfe.nfe_dtemis);
 
                     const timeZone = 'America/Sao_Paulo';
                     const formatString = "yyyy-MM-dd'T'HH:mm:ssXXX";
                     const dataemissao = formatInTimeZone(transmissao.nfe.nfe_dtemis, timeZone, formatString);
-                    console.log("numeracao: ", transmissao.nfe.nfe_numeracao);
+                    //console.log("numeracao: ", transmissao.nfe.nfe_numeracao);
 
                     NFe.tagIde({
                         cUF: String(empresa.cmun).substring(0, 2),
@@ -196,8 +196,9 @@ export class SpedNfeTransmissorService {
                         procEmi: "0",
                         verProc: "4.13"
                     });
+                    //console.log(chaveManifeto);
+                    NFe.tagRefNFe(chaveManifeto.chave_acesso);
 
-                    //NFe.tagRefNFe(chaveManifeto.chave_acesso);
                     NFe.tagEmit({
                         CNPJ: empresa.cnpj,
                         xNome: empresa.xnome,
@@ -629,7 +630,7 @@ export class SpedNfeTransmissorService {
                     NFe.tagInfRespTec({ CNPJ: "92113026000164", xContato: "PRODASIQ Desenvolvimento de Sistema Eireli", email: "contato@prodasiq.com", fone: "555133913625" })
 
                     const xmlGerado = NFe.xml(); // XML gerado ainda não assinado
-                    console.log(xmlGerado);
+                    //console.log(xmlGerado);
                     const xmlAssinado = await eTools.xmlSign(xmlGerado); // XML assinado
 
                     const valid = await eTools.validarNFe(xmlAssinado)

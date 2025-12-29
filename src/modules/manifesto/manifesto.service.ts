@@ -44,7 +44,7 @@ export class ManifestoService {
 
     }
 
-    async createLote(dados: CreateManifestoDto[], cnpj: string){
+    async createLote(dados: CreateManifestoDto[], cnpj: string) {
         try {
             const results = [];
             const getEmpresa = await this.prisma.empresa.findFirst({
@@ -56,28 +56,28 @@ export class ManifestoService {
             if (!getEmpresa) {
                 throw new HttpException(`Empresa ${cnpj} não encontrada ou sem configuração`, HttpStatus.NOT_FOUND);
             }
-           // console.log(dados);
-            for(const manifesto of dados){
+            // console.log(dados);
+            for (const manifesto of dados) {
 
                 //const data = { ...manifesto, idemp: getEmpresa.id };
 
                 const createdManifesto = await this.prisma.tb_manifestos.create({
                     data: {
-                        data:moment(manifesto.data).format('YYYY-MM-DD[T]HH:mm:ss.SSS[Z]',),
-                        n_manifesto:manifesto.n_manifesto,
-                        n_item:manifesto.n_item,
-                        cod_produto:manifesto.cod_produto,
-                        qtd_prod:manifesto.qtd_prod,
-                        vlr_unit:manifesto.vlr_unit,
-                        vBCSTRet:manifesto.vBCSTRet,
-                        vICMSSTRet:manifesto.vICMSSTRet,
-                        chave_acesso:manifesto.chave_acesso,
-                        codrepresentante:manifesto.codrepresentante,
-                        idemp:getEmpresa.id
+                        data: moment(manifesto.data).format('YYYY-MM-DD[T]HH:mm:ss.SSS[Z]',),
+                        n_manifesto: manifesto.n_manifesto,
+                        n_item: manifesto.n_item,
+                        cod_produto: manifesto.cod_produto,
+                        qtd_prod: manifesto.qtd_prod,
+                        vlr_unit: manifesto.vlr_unit,
+                        vBCSTRet: manifesto.vBCSTRet,
+                        vICMSSTRet: manifesto.vICMSSTRet,
+                        chave_acesso: manifesto.chave_acesso,
+                        codrepresentante: manifesto.codrepresentante,
+                        idemp: getEmpresa.id
                     }
                 })
 
-                 results.push({ success: true, manifesto: createdManifesto });
+                results.push({ success: true, manifesto: createdManifesto });
             }
 
 
@@ -88,7 +88,7 @@ export class ManifestoService {
                 throw error;
             } else {
                 throw new HttpException(
-                    'Ocorreu um erro dutante a gravação do manifesto '+error,
+                    'Ocorreu um erro dutante a gravação do manifesto ' + error,
                     HttpStatus.INTERNAL_SERVER_ERROR
                 )
             }
@@ -96,15 +96,15 @@ export class ManifestoService {
         }
 
     }
-    async ListaManifestoCriado(lastPulledVersion: Date, cnpj: string,codrepre:string){
-         const empresa = await this.prisma.empresa.findFirst({
+    async ListaManifestoCriado(lastPulledVersion: Date, cnpj: string, codrepre: string) {
+        const empresa = await this.prisma.empresa.findFirst({
             where: { cnpj },
         });
+        const nomepasta = await this.pegarTresPrimeirosSemEspaco(empresa.xnome);
+        const ManifestLegado = await this.manifestoFtpService.buscarManifestosDoSistemaLegado(nomepasta, codrepre);
 
-        const ManifestLegado = await this.manifestoFtpService.buscarManifestosDoSistemaLegado('prodasiq', codrepre);
-
-        if(ManifestLegado.length > 0){
-            for(const manifesto of ManifestLegado){
+        if (ManifestLegado.length > 0) {
+            for (const manifesto of ManifestLegado) {
                 const existingManifesto = await this.prisma.tb_manifestos.findFirst({
                     where: {
                         n_manifesto: manifesto.n_manifesto,
@@ -127,29 +127,38 @@ export class ManifestoService {
                             vICMSSTRet: Number(manifesto.fatorVlrIcmsRet),
                             chave_acesso: manifesto.chave_acesso,
                             codrepresentante: codrepre,
-                            idemp:empresa.id
+                            idemp: empresa.id
                         }
                     });
                 }
             }
         }
-        console.log(ManifestLegado);
+        //console.log(ManifestLegado);
 
         const dataManifesto = await this.prisma.tb_manifestos.findMany({
-             where: {
+            where: {
                 created_at: {
                     gte: lastPulledVersion
                 },
                 idemp: empresa.id,
-                codrepresentante:codrepre
+                codrepresentante: codrepre
             }
         });
 
-       return dataManifesto.map((manifesto) => ({
+        return dataManifesto.map((manifesto) => ({
             ...manifesto,
             created_at: new Date(manifesto.created_at).getTime(),
             updated_at: new Date(manifesto.updated_at).getTime(),
         }));
+    }
+
+    async pegarTresPrimeirosSemEspaco(texto: String): Promise<string> {
+        if (!texto) return "";
+
+        return texto
+            .replace(/\s+/g, "")   // remove todos os espaços
+            .slice(0, 3)           // pega os 3 primeiros caracteres
+            .toLowerCase();        // converte para minúsculo
     }
 }
 

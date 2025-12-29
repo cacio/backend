@@ -94,8 +94,9 @@ export class FornecedorService {
 
         for (const data of fornecedoresNormalizados) {
             const existente = mapaExistentes.get(data.cnpj) || mapaExistentes.get(data.cpf);
-            
+
             if (existente) {
+                console.log(`Atualizando fornecedor existente: ${existente.codigo}`);
                 updates.push(
                     this.prisma.fornecedor.update({
                         where: { codigo: existente.codigo },
