@@ -75,7 +75,7 @@ export class NfeService {
             return datanfe.map(nfe => ({
                 id: nfe.id,
                 nfe_codigo: String(nfe.nfe_codigo),
-                nfe_numeracao: nfe.nfe_numeracao,
+                nfe_numeracao: String(nfe.nfe_numeracao),
                 fornecedor_codigo: nfe.fornecedor_codigo,
                 nfe_dtemis: this.toAppDate(nfe.nfe_dtemis),
                 nfe_dtentrega: this.toAppDate(nfe.nfe_dtentrega),

@@ -67,8 +67,8 @@ export class NfeprodutosService {
 
         return produtos.map(nfeprodutos =>({
                 id: nfeprodutos.id,
-                codigo:nfeprodutos.codigo,
-                nfe_codigo:nfeprodutos.nfe_codigo,
+                codigo:String(nfeprodutos.codigo),
+                nfe_codigo:String(nfeprodutos.nfe_codigo),
                 nfe_id:nfeprodutos.nfe_id,
                 produtos_codigo:nfeprodutos.produtos_codigo,
                 nfe_subtotal:this.toMoney(nfeprodutos.nfe_subtotal),
@@ -87,7 +87,7 @@ export class NfeprodutosService {
                 nfe_quantidade:this.toMoney(nfeprodutos.nfe_quantidade),
                 nfe_valorunitario:this.toMoney(nfeprodutos.nfe_valorunitario),
                 nfe_infadprod:nfeprodutos.nfe_infadprod,
-                nfe_cfop:nfeprodutos.cfop_natura.Codigo,
+                nfe_cfop:String(nfeprodutos.cfop_natura.Codigo),
         }))
     }
 
