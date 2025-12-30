@@ -52,7 +52,7 @@ export class SpedNfeTransmissorService {
             let eTools = new Tools({
                 mod: '55',
                 //xmllint: xmllintPath, // path to xmllint para local windows
-                xmllint: '/usr/bin/xmllint', // path to xmllint para linux
+                xmllint: os.platform() === 'win32' ? xmllintPath :  '/usr/bin/xmllint', // path to xmllint para linux
                 UF: empresa.uf,
                 tpAmb: empresa.ConfiguracaoNFe.tpAmb,
                 CSC: '', // Código de Segurança do Contribuinte (emissor)
@@ -60,7 +60,7 @@ export class SpedNfeTransmissorService {
                 versao: '4.00',
                 timeout: 60000,
                 //openssl: opensslPath as any,
-                openssl: null,
+                openssl: os.platform() === 'win32' ? opensslPath as any :  null,
                 CPF: '',
                 CNPJ: empresa.cnpj // use the CNPJ from the empresa object
             }, {
@@ -242,7 +242,7 @@ export class SpedNfeTransmissorService {
                         ...(this.isCpf(clienteDest.cpf)
                             ? { CPF: clienteDest.cpf }
                             : { CNPJ: clienteDest.cnpj }),
-                        xNome: `(${clienteDest.cod_retaquarda}) ${clienteDest.xnome}`,
+                        xNome: empresa.ConfiguracaoNFe.tpAmb == 1 ?  `(${clienteDest.cod_retaquarda}) ${clienteDest.xnome}` : 'NF-E EMITIDA EM AMBIENTE DE HOMOLOGACAO - SEM VALOR FISCAL',
                         indIEDest: clienteDest.ie ? 1 : 2,
                         IE: clienteDest.ie || undefined,
                         ...(clienteDest.email && { email: clienteDest.email })
@@ -267,6 +267,7 @@ export class SpedNfeTransmissorService {
 
                     let tot_prod_voutros = 0;
                     let obsitemfator = '';
+                    let totalprodutos = 0;
                     const listaProdutos = await Promise.all(
                         produtos.map(async (p, index) => {
                             const dadosproduto = await this.prisma.produtos.findUnique({
@@ -287,6 +288,7 @@ export class SpedNfeTransmissorService {
 
                             //console.log(dadosmanifesto,' - ',transmissao.nfe.nfe_manifesto,' - ',dadosproduto.cprod);
                             const numeromanifesto = await this.somenteNumeros(transmissao.nfe.nfe_manifesto.substring(0, 15) || '');
+                            totalprodutos += p.nfe_subtotal;
                             return limparCamposZero({
                                 cProd: String(dadosproduto.cprod).trim(),
                                 cEAN: dadosproduto?.cean == '0' || dadosproduto?.cean == '' ? 'SEM GTIN' : dadosproduto?.cean,
@@ -548,7 +550,7 @@ export class SpedNfeTransmissorService {
                         vST: transmissao.nfe.nfe_totvicmsst.toFixed(2),
                         vFCPST: "0.00",
                         vFCPSTRet: "0.00",
-                        vProd: transmissao.nfe.nfe_total_produtos.toFixed(2),
+                        vProd: totalprodutos.toFixed(2),
                         vFrete: "0.00",
                         vSeg: "0.00",
                         vDesc: "0.00",
@@ -831,7 +833,7 @@ export class SpedNfeTransmissorService {
             const eTools = new Tools({
                 mod: '55',
                 //xmllint: xmllintPath,
-                xmllint: '/usr/bin/xmllint',
+                xmllint: os.platform() === 'win32' ? xmllintPath :  '/usr/bin/xmllint',
                 UF: empresa.uf,
                 tpAmb: empresa.ConfiguracaoNFe.tpAmb,
                 CSC: '',
@@ -1020,7 +1022,7 @@ export class SpedNfeTransmissorService {
             const eTools = new Tools({
                 mod: '55',
                 //xmllint: xmllintPath,
-                xmllint: '/usr/bin/xmllint',
+                xmllint: os.platform() === 'win32' ? xmllintPath :  '/usr/bin/xmllint',
                 UF: empresa.uf,
                 tpAmb: empresa.ConfiguracaoNFe.tpAmb,
                 CSC: '',
@@ -1161,7 +1163,7 @@ export class SpedNfeTransmissorService {
             const eTools = new Tools({
                 mod: '55',
                 //xmllint: xmllintPath,
-                xmllint: '/usr/bin/xmllint',
+                xmllint: os.platform() === 'win32' ? xmllintPath :  '/usr/bin/xmllint',
                 UF: empresa.uf,
                 tpAmb: empresa.ConfiguracaoNFe.tpAmb,
                 CSC: '',

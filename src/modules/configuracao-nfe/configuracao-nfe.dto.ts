@@ -70,7 +70,7 @@ export class UpdateConfiguracaoNfeDto {
 
   @IsString()
   @IsOptional()
-  @IsIn(['SSL', 'TLS', 'NONE'])
+  @IsIn(['ssl', 'tls', 'none'])
   mailProtocol?: string;
 
   @IsString()
