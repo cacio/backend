@@ -1304,10 +1304,10 @@ export class SpedNfeTransmissorService {
     }) {
         try {
             console.log(`Iniciando geração do DANFE e envio de e-mail para ${dados.destinatarioEmail}...`);
-
+            const xmlParaDanfe = await this.normalizarDuplicatasXml(String(dados.xmlAutorizado));
             // 1. Gerar o PDF do DANFE a partir do XML autorizado
             // A biblioteca já oferece uma função para isso, que retorna um Buffer do PDF.
-            const pdfBuffer = await DANFe({ xml: String(dados.xmlAutorizado) });
+            const pdfBuffer = await DANFe({ xml: xmlParaDanfe });
 
             // 2. Definir o nome dos arquivos em anexo
             const nomeBaseArquivo = `NFe-${dados.serieNota}-${String(dados.numeroNota).padStart(9, '0')}`;
@@ -1363,7 +1363,7 @@ export class SpedNfeTransmissorService {
         idempre: string;
     }) {
         try {
-            console.log(dados);
+            //console.log(dados);
             const empresa = await this.prisma.empresa.findUnique({
                 where: { id: String(dados.idempre) },
             });
@@ -1371,7 +1371,6 @@ export class SpedNfeTransmissorService {
             if (!empresa) {
                 throw new HttpException(`Empresa não encontrada`, HttpStatus.NOT_FOUND);
             }
-
 
             const dadosNfe = await this.prisma.nfe_evento.findFirst({
                 where: {
@@ -1382,10 +1381,11 @@ export class SpedNfeTransmissorService {
                 }
             });
 
+             const xmlParaDanfe = await this.normalizarDuplicatasXml(String(dadosNfe.caminho_xml));
 
             await this.HandlerSendMailNFe({
                 destinatarioEmail: dados.email,
-                xmlAutorizado: dadosNfe.caminho_xml, // O XML completo e autorizado
+                xmlAutorizado: xmlParaDanfe, // O XML completo e autorizado
                 empresaNome: empresa.xnome,
                 numeroNota: Number(dados.nfe_codigo),
                 serieNota: dadosNfe.serie,
@@ -1401,6 +1401,43 @@ export class SpedNfeTransmissorService {
             throw error;
         }
     }
+
+
+    async normalizarDuplicatasXml(xml: string): Promise<string> {
+        // Se já tem <dup>, não faz nada
+        if (xml.includes('<dup>')) {
+            return xml;
+        }
+
+        // Se não tem <cobr>, cria o bloco vazio
+        if (!xml.includes('<cobr>')) {
+            return xml.replace(
+                '</infNFe>',
+                `
+                <cobr>
+                    <dup>
+                        <nDup></nDup>
+                        <dVenc></dVenc>
+                        <vDup></vDup>
+                    </dup>
+                </cobr>
+                </infNFe>`
+            );
+        }
+
+    // Se tem <cobr> mas não tem <dup>
+    return xml.replace(
+        '</cobr>',
+        `
+        <dup>
+            <nDup></nDup>
+            <dVenc></dVenc>
+            <vDup></vDup>
+        </dup>
+        </cobr>`
+    );
+}
+
 
     /**
    * Modifica o XML de uma NFe autorizada para refletir o seu cancelamento.
