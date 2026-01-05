@@ -445,9 +445,12 @@ export class SpedNfeTransmissorService {
                             //     vAliqProd: 0,
                             //     vPIS: p.nfe_vpis,
                             // });
+                            const pecas = Number(p.nfe_pecas || 0)
+                                .toFixed(2)      // força duas casas
+                                .replace('.', ','); // troca ponto por vírgula
 
                             NFe.taginfAdProd(index, {
-                                infAdProd: `PC:${p.nfe_pecas}`
+                                infAdProd: `PC:${pecas}`
                             });
 
                             let vIBS = 0;
