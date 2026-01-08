@@ -115,6 +115,9 @@ export class ManifestoService {
                 });
 
                 if (!existingManifesto) {
+
+                    const dataupdate = moment().format('YYYY-MM-DD[T]HH:mm:ss.SSS[Z]');
+
                     await this.prisma.tb_manifestos.create({
                         data: {
                             data: moment(manifesto.data).format('YYYY-MM-DD[T]HH:mm:ss.SSS[Z]',),
@@ -127,7 +130,9 @@ export class ManifestoService {
                             vICMSSTRet: Number(manifesto.fatorVlrIcmsRet),
                             chave_acesso: manifesto.chave_acesso,
                             codrepresentante: codrepre,
-                            idemp: empresa.id
+                            idemp: empresa.id,
+                            created_at: dataupdate,
+                            updated_at: dataupdate,
                         }
                     });
                 }

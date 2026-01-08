@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/datrabase/PrismaService';
 import { Prisma, fornecedor } from '@prisma/client';
 import { CreateFornecedorDto, UpdateFornecedorDto } from './DTO/fornecedor.dto';
+import * as moment from 'moment-timezone';
 
 @Injectable()
 export class FornecedorService {
@@ -97,10 +98,15 @@ export class FornecedorService {
 
             if (existente) {
                 console.log(`Atualizando fornecedor existente: ${existente.codigo}`);
+                const dataupdate = moment().format('YYYY-MM-DD[T]HH:mm:ss.SSS[Z]');
+                const dataAtualizacao = data;
                 updates.push(
                     this.prisma.fornecedor.update({
                         where: { codigo: existente.codigo },
-                        data
+                        data:{
+                            ...dataAtualizacao,
+                            updated_at: dataupdate,
+                        }
                     })
                 );
             } else {

@@ -27,7 +27,7 @@ export class ProdutoService {
                 throw new Error("Produto ja existe");
             }
 
-            const data = { ...produto, idemp: getEmpresa.id,dtContagemEstoque:moment(new Date()).toISOString()};
+            const data = { ...produto, idemp: getEmpresa.id, dtContagemEstoque: moment(new Date()).toISOString() };
 
             return await this.prisma.produtos.create({
                 data,
@@ -96,18 +96,22 @@ export class ProdutoService {
                     mediaprecounitario: produto["MEDIAPRECOUNITARIO"] ? produto["MEDIAPRECOUNITARIO"] : 0,
                     CENQ: produto["CENQ"],
                     CBENEF: produto["CBENEF"],
-                    CClassTribIBSCBS:produto['CClassTribIBSCBS'],
-                    CSTIBSCBS:produto['CSTIBSCBS'],
-                    CSTIS:produto['CSTISS'],
-                    aliquotaCBS:produto['aliquotaCBS'],
-                    aliquotaIBS:produto['aliquotaIBS']
+                    CClassTribIBSCBS: produto['CClassTribIBSCBS'],
+                    CSTIBSCBS: produto['CSTIBSCBS'],
+                    CSTIS: produto['CSTISS'],
+                    aliquotaCBS: produto['aliquotaCBS'],
+                    aliquotaIBS: produto['aliquotaIBS']
                 };
 
                 if (existente) {
                     // Atualiza o produto existente
+                    const dataupdate = moment().format('YYYY-MM-DD[T]HH:mm:ss.SSS[Z]');
                     return this.prisma.produtos.update({
                         where: { codigo: existente.codigo },
-                        data: dataAtualizacao,
+                        data: {
+                            ...dataAtualizacao,
+                            updated_at: dataupdate,
+                        },
                     });
                 } else {
                     // Cria um produto novo
@@ -217,8 +221,8 @@ export class ProdutoService {
         return dataproduct.map(prod => ({
             ...prod,
             id: prod.codigo,
-            mediapeso:Number(prod.mediapeso) || 0,
-            mediaprecounitario:Number(prod.mediaprecounitario) || 0
+            mediapeso: Number(prod.mediapeso) || 0,
+            mediaprecounitario: Number(prod.mediaprecounitario) || 0
         }));
     }
     async ListaProdutoAlterado(lastPulledVersion: Date, cnpj: string) {
@@ -229,24 +233,25 @@ export class ProdutoService {
 
         const dataproduct = await this.prisma.produtos.findMany({
             where: {
+                idemp: empresa.id,
                 updated_at: {
                     gte: lastPulledVersion,
                 },
                 created_at: {
                     lt: lastPulledVersion, // só pega registros realmente atualizados
                 },
-                idemp: empresa.id,
+
             },
         });
 
         return dataproduct.map(prod => ({
             ...prod,
             id: prod.codigo,
-            mediapeso:Number(prod.mediapeso) || 0,
-            mediaprecounitario:Number(prod.mediaprecounitario) || 0
+            mediapeso: Number(prod.mediapeso) || 0,
+            mediaprecounitario: Number(prod.mediaprecounitario) || 0
         }));
     }
-    async findAll(cnpj:string) {
+    async findAll(cnpj: string) {
         const getEmpresa = await this.prisma.empresa.findFirst({
             where: {
                 cnpj

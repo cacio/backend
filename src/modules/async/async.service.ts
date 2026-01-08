@@ -42,15 +42,18 @@ export class AsyncService {
         let dataFormatted: Date;
 
         if (lastPulledVersion !== '0') {
-            const datalastpull = new Date(Number(lastPulledVersion));
-            if (isNaN(datalastpull.getTime())) {
+            const momentDate = moment(Number(lastPulledVersion));
+            if (!momentDate.isValid()) {
                 throw new Error('Invalid lastPulledVersion timestamp');
             }
-            dataFormatted = datalastpull;
+            const datalastpull = momentDate.format(
+                            'YYYY-MM-DD[T]HH:mm:ss.SSS[Z]',
+                        );
+            dataFormatted = new Date(datalastpull);
         } else {
             dataFormatted = new Date(0);
         }
-
+        console.log('Data formatada para pull:', dataFormatted);
         const fornecedor: { created: any[]; updated: any[]; deleted: string[] } = {
             created: await this.fornecedor.ListaFornecedoresCriados(dataFormatted, cnpj),
             updated: await this.fornecedor.ListaFornecedorAlterado(dataFormatted, cnpj),
@@ -214,6 +217,7 @@ export class AsyncService {
     }
 
     fixTypesNfe = async (item: Omit<NfeDto, '_status' | '_changed'>): Promise<any> => {
+        const dataupdate = moment().format('YYYY-MM-DD[T]HH:mm:ss.SSS[Z]');
         const formatted = {
             ...item,
             nfe_codigo: Number(item.nfe_codigo),
@@ -239,6 +243,8 @@ export class AsyncService {
             nfe_fatumento: item.nfe_fatumento === 'S' || item.nfe_fatumento === 'N' ? item.nfe_fatumento : undefined,
             nfe_dtemis: item.nfe_dtemis ? moment(item.nfe_dtemis).format('YYYY-MM-DD[T]HH:mm:ss.SSS[Z]') : undefined,
             nfe_dtentrega: item.nfe_dtentrega ? moment(item.nfe_dtentrega).format('YYYY-MM-DD[T]HH:mm:ss.SSS[Z]') : undefined,
+            created_at: dataupdate,
+            updated_at: dataupdate,
         };
 
         if (item.nfe_formpag) {
@@ -340,12 +346,15 @@ export class AsyncService {
 
     fixTypesDuplicata = async (item: Omit<DuplicataDto, '_status' | '_changed'>): Promise<any> => {
         const clean = removeFields(item, ['id_dup', 'id_nfe', 'idemp']);
+        const dataupdate = moment().format('YYYY-MM-DD[T]HH:mm:ss.SSS[Z]');
         return {
             ...clean,
             data_emissao: item.data_emissao ? moment(item.data_emissao).format('YYYY-MM-DD[T]HH:mm:ss.SSS[Z]') : undefined,
             data_vencimento: item.data_vencimento ? moment(item.data_vencimento).format('YYYY-MM-DD[T]HH:mm:ss.SSS[Z]') : undefined,
             valor_duplicata: item.valor_duplicata ? Number(item.valor_duplicata) : undefined,
             valor_nota: item.valor_nota ? Number(item.valor_nota) : undefined,
+            created_at: dataupdate,
+            updated_at: dataupdate,
         };
     }
 
